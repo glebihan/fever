@@ -55,7 +55,7 @@ class Application(object):
         self._account = FeverAccount(username)
         self._account.connect("need_token", self._on_account_need_token)
         self._account.connect("authentication_success", self._on_account_authentication_success)
-        #~ self._account.connect("sync_done", lambda a: self._check_quit())
+        self._account.connect("sync_done", lambda a: self._check_quit())
         self._account.authenticate()
     
     def _on_account_authentication_success(self, account):
@@ -63,7 +63,7 @@ class Application(object):
     
     def run(self):
         Gdk.threads_init()
-        self._window.show_all()
+        #~ self._window.show_all()
         self._switch_account("gwlebihan")
         Gtk.main()
         #~ dev_token = "S=s1:U=8d7fa:E=14a6bbc4604:C=143140b1a06:P=1cd:A=en-devtoken:V=2:H=bc2eeee6b3b3c781b06abc8d25ee2a69"

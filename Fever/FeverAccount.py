@@ -51,6 +51,7 @@ class FeverAccountDB(object):
     def _check_db_structure(self):
         self._query("CREATE TABLE IF NOT EXISTS global_data (`key` TEXT, `value` TEXT)")
         self._query("CREATE TABLE IF NOT EXISTS tags (`local_id` INTEGER PRIMARY KEY, `guid` TEXT, name TEXT, parentGuid TEXT, updateSequenceNum NUMERIC, dirty NUMERIC DEFAULT 0)")
+        self._query("CREATE TABLE IF NOT EXISTS notebooks (`local_id` INTEGER PRIMARY KEY, `guid` TEXT, name TEXT, updateSequenceNum NUMERIC, defaultNotebook NUMERIC DEFAULT 0, dirty NUMERIC DEFAULT 0)")
     
     def _push_query(self, sql, params, condition):
         self._query_lock.acquire()
@@ -120,6 +121,19 @@ class FeverAccountDB(object):
                 "dirty": res[0][5]
             }
     
+    def lookup_tag_by_name(self, name):
+        logging.debug("lookup_tag_by_name %s" % name)
+        res = self._query("SELECT * FROM tags WHERE name=?", (name,))
+        if len(res) == 1:
+            return {
+                "local_id": res[0][0],
+                "guid": res[0][1],
+                "name": res[0][2],
+                "parentGuid": res[0][3],
+                "updateSequenceNum": res[0][4],
+                "dirty": res[0][5]
+            }
+    
     def create_tag_from_server(self, tag):
         logging.debug("create_tag_from_server guid %s, name %s", tag.guid, tag.name)
         self._query("INSERT INTO tags (guid, name, parentGuid, updateSequenceNum, dirty) VALUES (?, ?, ?, ?, 0)", (tag.guid, tag.name, tag.parentGuid, tag.updateSequenceNum))
@@ -148,6 +162,61 @@ class FeverAccountDB(object):
     
     def rename_tag(self, local_id, new_name):
         self._query("UPDATE tags SET name=?, dirty=1 WHERE local_id=?", (new_name, local_id))
+        
+    def lookup_notebook_by_guid(self, guid):
+        logging.debug("lookup_notebook_by_guid %s" % guid)
+        res = self._query("SELECT * FROM notebooks WHERE guid=?", (guid,))
+        if len(res) == 1:
+            return {
+                "local_id": res[0][0],
+                "guid": res[0][1],
+                "name": res[0][2],
+                "updateSequenceNum": res[0][3],
+                "defaultNotebook": res[0][4],
+                "dirty": res[0][5]
+            }
+    
+    def lookup_notebook_by_name(self, name):
+        logging.debug("lookup_notebook_by_name %s" % name)
+        res = self._query("SELECT * FROM notebooks WHERE name=?", (name,))
+        if len(res) == 1:
+            return {
+                 "local_id": res[0][0],
+                "guid": res[0][1],
+                "name": res[0][2],
+                "updateSequenceNum": res[0][3],
+                "defaultNotebook": res[0][4],
+                "dirty": res[0][5]
+            }
+    
+    def create_notebook_from_server(self, notebook):
+        logging.debug("create_notebook_from_server guid %s, name %s", notebook.guid, notebook.name)
+        self._query("INSERT INTO notebooks (guid, name, updateSequenceNum, defaultNotebook, dirty) VALUES (?, ?, ?, ?, 0)", (notebook.guid, notebook.name, notebook.updateSequenceNum, notebook.defaultNotebook))
+    
+    def update_notebook_from_server(self, local_id, notebook):
+        logging.debug("update_notebook_from_server guid %s, name %s", notebook.guid, notebook.name)
+        self._query("UPDATE notebooks SET guid=?, name=?, updateSequenceNum=?, defaultNotebook=?, dirty=0 WHERE local_id=?", (notebook.guid, notebook.name, notebook.updateSequenceNum, notebook.defaultNotebook, local_id))
+    
+    def list_notebooks(self):
+        notebooks = self._query("SELECT * FROM notebooks")
+        res = []
+        for notebook in notebooks:
+            res.append({
+                "local_id": notebook[0],
+                "guid": notebook[1],
+                "name": notebook[2],
+                "updateSequenceNum": notebook[3],
+                "defaultNotebook": notebook[4],
+                "dirty": notebook[5]
+            })
+        return res
+    
+    def delete_notebook(self, local_id):
+        logging.debug("delete_notebook %d", local_id)
+        self._query("DELETE FROM notebooks WHERE local_id=?", (local_id,))
+    
+    def rename_notebook(self, local_id, new_name):
+        self._query("UPDATE notebooks SET name=?, dirty=1 WHERE local_id=?", (new_name, local_id))
 
 class FeverAccount(EventsObject):
     def __init__(self, username):
@@ -207,7 +276,7 @@ class FeverAccount(EventsObject):
             chunk_filter = NoteStore.SyncChunkFilter(**{
                 #~ "includeNotes": True,
                 "includeTags": True,
-                #~ "includeNotebooks": True,
+                "includeNotebooks": True,
                 #~ "includeNoteResources": True,
                 #~ "includeNoteAttributes": True,
                 #~ "includeResources": True,
@@ -216,18 +285,26 @@ class FeverAccount(EventsObject):
             })
             client = EvernoteClient(token = self.token)
             noteStore = client.get_note_store()
+            
             chunks_list = []
             chunk = noteStore.getFilteredSyncChunk(0, 100, chunk_filter)
             chunks_list.append(chunk)
             while chunk.chunkHighUSN < chunk.updateCount:
                 chunk = noteStore.getFilteredSyncChunk(chunk.chunkHighUSN, 100, chunk_filter)
                 chunks_list.append(chunk)
+            
             tags_list = []
+            notebooks_list = []
             for chunk in chunks_list:
                 if chunk.tags:
                     tags_list += chunk.tags
+                if chunk.notebooks:
+                    notebooks_list += chunk.notebooks
+            
+            # Tags sync
             tags_to_upload = []
             tags_on_both_sides = []
+            created_tags = []
             for server_tag in tags_list:
                 client_tag = self._account_data_db.lookup_tag_by_guid(server_tag.guid)
                 if client_tag:
@@ -257,19 +334,63 @@ class FeverAccount(EventsObject):
                             self._account_data_db.rename_tag(client_tag["local_id"], new_name)
                     else:
                         self._account_data_db.create_tag_from_server(server_tag)
+                        created_tags.append(server_notebook.guid)
             
             for client_tag in self._account_data_db.list_tags():
-                if not client_tag["local_id"] in tags_on_both_sides:
+                if not client_tag["local_id"] in tags_on_both_sides and not client_tag["guid"] in created_tags:
                     if client_tag["dirty"] == 0 or client_tag["updateSequenceNum"]:
                         self._account_data_db.delete_tag(client_tag["local_id"])
                     else:
                         tags_to_upload.append((None, client_tag))
+            
+            # Notebooks sync
+            notebooks_to_upload = []
+            notebooks_on_both_sides = []
+            created_notebooks = []
+            for server_notebook in notebooks_list:
+                client_notebook = self._account_data_db.lookup_notebook_by_guid(server_notebook.guid)
+                if client_notebook:
+                    if server_notebook.updateSequenceNum == client_notebook["updateSequenceNum"] and not client_notebook["dirty"]:
+                        # Nothing to do, notebook is in sync
+                        pass
+                    elif server_notebook.updateSequenceNum == client_notebook["updateSequenceNum"] and client_notebook["dirty"]:
+                        notebooks_to_upload.append((server_notebook, client_notebook))
+                    elif server_notebook.updateSequenceNum > client_notebook["updateSequenceNum"] and not client_notebook["dirty"]:
+                        self._account_data_db.update_notebook_from_server(client_notebook["local_id"], server_notebook)
+                    elif server_notebook.updateSequenceNum > client_notebook["updateSequenceNum"] and client_notebook["dirty"]:
+                        # Conflict
+                        pass
+                    notebooks_on_both_sides.append(client_notebook["local_id"])
+                else:
+                    client_notebook = self._account_data_db.lookup_notebook_by_name(server_notebook.name)
+                    if client_notebook:
+                        if client_notebook["dirty"]:
+                            # Conflict
+                            pass
+                        else:
+                            index = 2
+                            new_name = "%s (%n)" % (client_notebook["name"], index)
+                            while self._account_data_db.lookup_notebook_by_name(new_name):
+                                index += 1
+                                new_name = "%s (%n)" % (client_notebook["name"], index)
+                            self._account_data_db.rename_notebook(client_notebook["local_id"], new_name)
+                    else:
+                        self._account_data_db.create_notebook_from_server(server_notebook)
+                        created_notebooks.append(server_notebook.guid)
+            
+            for client_notebook in self._account_data_db.list_notebooks():
+                if not client_notebook["local_id"] in notebooks_on_both_sides and not client_notebook["guid"] in created_notebooks:
+                    if client_notebook["dirty"] == 0 or client_notebook["updateSequenceNum"]:
+                        self._account_data_db.delete_notebook(client_notebook["local_id"])
+                    else:
+                        notebooks_to_upload.append((None, client_notebook))
             
             #~ self.lastUpdateCount = chunk.updateCount
             #~ self.lastSyncTime = chunk.currentTime
             
             need_incremental_sync = False
             
+            # Tags upload
             for server_tag, client_tag in tags_to_upload:
                 if client_tag["updateSequenceNum"]:
                     server_tag.name = client_tag["name"]
@@ -282,6 +403,20 @@ class FeverAccount(EventsObject):
                 else:
                     server_tag = noteStore.createTag(EvernoteTypes.Tag(name = client_tag["name"]))
                     self._account_data_db.update_tag_from_server(client_tag["local_id"], server_tag)
+            
+            # Notebooks upload
+            for server_notebook, client_notebook in notebooks_to_upload:
+                if client_notebook["updateSequenceNum"]:
+                    server_notebook.name = client_notebook["name"]
+                    updateSequenceNum = noteStore.updateNotebook(server_notebook)
+                    if updateSequenceNum == self.lastUpdateCount + 1:
+                        self.lastUpdateCount = updateSequenceNum
+                    else:
+                        need_incremental_sync = True
+                    self._account_data_db.update_notebook_from_server(client_notebook["local_id"], server_notebook)
+                else:
+                    server_notebook = noteStore.createNotebook(EvernoteTypes.Notebook(name = client_notebook["name"]))
+                    self._account_data_db.update_notebook_from_server(client_notebook["local_id"], server_notebook)
         except:
             logging.error(sys.exc_info())
     
