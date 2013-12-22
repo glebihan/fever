@@ -2,7 +2,7 @@
 # -*- coding=utf-8 -*-
 
 import threading
-from gi.repository import GObject
+import gobject
 
 class ThreadedTask(object):
     def __init__(self, group = None, target = None, name = None, args = (), kwargs = {}, callback = None):
@@ -12,7 +12,7 @@ class ThreadedTask(object):
         self._callback = callback
         self._thread = threading.Thread(group, self._do_run, name)
         self._thread_done = threading.Event()
-        GObject.timeout_add(100, self._check_done)
+        gobject.timeout_add(100, self._check_done)
     
     def _check_done(self):
         if self._thread_done.is_set():

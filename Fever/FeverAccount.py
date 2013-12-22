@@ -10,7 +10,7 @@ import fsutils
 import json
 import threading
 import sqlite3
-from gi.repository import GObject
+import gobject
 
 from evernote.api.client import EvernoteClient
 from evernote.edam.notestore import NoteStore
@@ -43,7 +43,7 @@ class FeverAccountDB(object):
         self._query_queue = {}
         self._query_results = {}
         
-        GObject.timeout_add(10, self._check_query_queue)
+        gobject.timeout_add(10, self._check_query_queue)
         
         self._check_db_structure()
     
@@ -230,6 +230,15 @@ class FeverAccountDB(object):
             return
             
         self._query("UPDATE " + element_type + " SET name=?, dirty=1 WHERE local_id=?", (new_name, local_id))
+    
+    def get_element(self, element_type, local_id):
+        logging.debug("get_element %s %d" % (element_type, local_id))
+        
+        if not element_type in ELEMENTS_TYPES:
+            logging.fatal("Unknown element type %s" % element_type)
+            return
+        
+        return self._format_element(element_type, self._query("SELECT `" + "`, `".join(ELEMENTS_FIELDS[element_type]) + "` FROM " + element_type + " WHERE local_id=?", (local_id,))[0])
 
 class FeverAccount(EventsObject):
     def __init__(self, username):
@@ -238,6 +247,18 @@ class FeverAccount(EventsObject):
         self._username = username
         self._account_data_file = os.path.join(os.getenv("HOME"), ".local", "share", "fever", "accounts", self._username + ".db")
         self._account_data_db = FeverAccountDB(self._account_data_file)
+    
+    def list_tags(self):
+        return [tag for tag in self._account_data_db.list_elements("tags") if tag["deleted"] == False]
+    
+    def list_notebooks(self):
+        return [notebook for notebook in self._account_data_db.list_elements("notebooks") if notebook["deleted"] == False]
+    
+    def list_notes(self):
+        return [note for note in self._account_data_db.list_elements("notes") if note["deleted"] == False]
+    
+    def get_note(self, note_local_id):
+        return self._account_data_db.get_element("notes", note_local_id)
     
     def destroy(self):
         self.disconnect_all()
