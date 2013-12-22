@@ -176,9 +176,9 @@ class FeverAccountDB(object):
             logging.fatal("Unknown element type %s" % element_type)
             return
         
-        field_list = [field for field in ELEMENTS_FIELDS[element_type] if field not in ["local_id", "dirty", "tagGuids", "deleted"]] + ["dirty", "deleted"]
+        field_list = [field for field in ELEMENTS_FIELDS[element_type] if field not in ["local_id", "dirty", "tagGuids", "deleted", "content"]] + ["dirty", "deleted"]
         query_match_array = []
-        values_list = [getattr(element, a) for a in [field for field in ELEMENTS_FIELDS[element_type] if field not in ["local_id", "dirty", "tagGuids", "deleted"]]] + [0, 0]
+        values_list = [getattr(element, a) for a in [field for field in ELEMENTS_FIELDS[element_type] if field not in ["local_id", "dirty", "tagGuids", "deleted", "content"]]] + [0, 0]
         
         if element_type == "notes":
             field_list += ["tagGuids"]
@@ -186,6 +186,10 @@ class FeverAccountDB(object):
                 values_list += [",".join(element.tagGuids)]
             else:
                 values_list += [None]
+            
+            if element.content != None:
+                field_list += ["content"]
+                values_list += [element.content]
         
         for field in field_list:
             query_match_array += ["%s=?" % field]
@@ -332,6 +336,8 @@ class FeverAccount(EventsObject):
                             else:
                                 elements_to_upload[element_type].append((server_element, client_element))
                         elif server_element.updateSequenceNum > client_element["updateSequenceNum"] and not client_element["dirty"]:
+                            if element_type == "notes" and server_element.contentHash != client_element["contentHash"]:
+                                server_element.content = noteStore.getNoteContent(server_element.guid)
                             self._account_data_db.update_element_from_server(element_type, client_element["local_id"], server_element)
                         elif server_element.updateSequenceNum > client_element["updateSequenceNum"] and client_element["dirty"]:
                             # Conflict
@@ -354,6 +360,8 @@ class FeverAccount(EventsObject):
                                     new_name = "%s (%n)" % (client_element["name"], index)
                                 self._account_data_db.rename_element(element_type, client_element["local_id"], new_name)
                         else:
+                            if element_type == "notes":
+                                server_element.content = noteStore.getNoteContent(server_element.guid)
                             self._account_data_db.create_element_from_server(element_type, server_element)
                             created_elements[element_type].append(server_element.guid)
             
@@ -376,6 +384,7 @@ class FeverAccount(EventsObject):
                     if client_element["updateSequenceNum"]:
                         if element_type == "notes":
                             server_element.title = client_element["title"]
+                            server_element.content = client_element["content"]
                         else:
                             server_element.name = client_element["name"]
                         if element_type == "tags":
