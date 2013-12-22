@@ -16,12 +16,20 @@ from evernote.api.client import EvernoteClient
 from evernote.edam.notestore import NoteStore
 from evernote.edam.type import ttypes as EvernoteTypes
 
+ELEMENTS_TYPES = ["tags", "notebooks", "notes"]
+ELEMENTS_FIELDS = {
+    "tags": ["local_id", "guid", "name", "parentGuid", "updateSequenceNum", "dirty", "deleted"],
+    "notebooks": ["local_id", "guid", "name", "updateSequenceNum", "defaultNotebook", "dirty", "deleted"],
+    "notes": ["local_id", "guid", "title", "content", "contentHash", "contentLength", "active", "updateSequenceNum", "notebookGuid", "tagGuids", "dirty", "deleted"]
+}
+
 class FeverAccountDB(object):
     def __init__(self, db_file):
         self._db_file = db_file
         if not os.path.exists(os.path.split(self._db_file)[0]):
             fsutils.rec_mkdir(os.path.split(self._db_file)[0])
         self._db = sqlite3.Connection(self._db_file)
+        self._db.text_factory = str
         
         self._main_thread = threading.current_thread()
         
@@ -50,8 +58,9 @@ class FeverAccountDB(object):
     
     def _check_db_structure(self):
         self._query("CREATE TABLE IF NOT EXISTS global_data (`key` TEXT, `value` TEXT)")
-        self._query("CREATE TABLE IF NOT EXISTS tags (`local_id` INTEGER PRIMARY KEY, `guid` TEXT, name TEXT, parentGuid TEXT, updateSequenceNum NUMERIC, dirty NUMERIC DEFAULT 0)")
-        self._query("CREATE TABLE IF NOT EXISTS notebooks (`local_id` INTEGER PRIMARY KEY, `guid` TEXT, name TEXT, updateSequenceNum NUMERIC, defaultNotebook NUMERIC DEFAULT 0, dirty NUMERIC DEFAULT 0)")
+        self._query("CREATE TABLE IF NOT EXISTS tags (`local_id` INTEGER PRIMARY KEY, `guid` TEXT, name TEXT, parentGuid TEXT, updateSequenceNum NUMERIC, dirty NUMERIC DEFAULT 0, deleted NUMERIC DEFAULT 0)")
+        self._query("CREATE TABLE IF NOT EXISTS notebooks (`local_id` INTEGER PRIMARY KEY, `guid` TEXT, name TEXT, updateSequenceNum NUMERIC, defaultNotebook NUMERIC DEFAULT 0, dirty NUMERIC DEFAULT 0, deleted NUMERIC DEFAULT 0)")
+        self._query("CREATE TABLE IF NOT EXISTS notes (`local_id` INTEGER PRIMARY KEY, `guid` TEXT, title TEXT, content TEXT, contentHash TEXT, contentLength NUMERIC, active NUMERIC DEFAULT 1, updateSequenceNum NUMERIC, notebookGuid TEXT, tagGuids TEXT, dirty NUMERIC DEFAULT 0, deleted NUMERIC DEFAULT 0)")
     
     def _push_query(self, sql, params, condition):
         self._query_lock.acquire()
@@ -108,115 +117,110 @@ class FeverAccountDB(object):
         self._query("DELETE FROM global_data WHERE `key`=?", (key,))
         self._query("INSERT INTO global_data (`key`, `value`) VALUES (?, ?)", (key, value))
     
-    def lookup_tag_by_guid(self, guid):
-        logging.debug("lookup_tag_by_guid %s" % guid)
-        res = self._query("SELECT * FROM tags WHERE guid=?", (guid,))
-        if len(res) == 1:
-            return {
-                "local_id": res[0][0],
-                "guid": res[0][1],
-                "name": res[0][2],
-                "parentGuid": res[0][3],
-                "updateSequenceNum": res[0][4],
-                "dirty": res[0][5]
-            }
-    
-    def lookup_tag_by_name(self, name):
-        logging.debug("lookup_tag_by_name %s" % name)
-        res = self._query("SELECT * FROM tags WHERE name=?", (name,))
-        if len(res) == 1:
-            return {
-                "local_id": res[0][0],
-                "guid": res[0][1],
-                "name": res[0][2],
-                "parentGuid": res[0][3],
-                "updateSequenceNum": res[0][4],
-                "dirty": res[0][5]
-            }
-    
-    def create_tag_from_server(self, tag):
-        logging.debug("create_tag_from_server guid %s, name %s", tag.guid, tag.name)
-        self._query("INSERT INTO tags (guid, name, parentGuid, updateSequenceNum, dirty) VALUES (?, ?, ?, ?, 0)", (tag.guid, tag.name, tag.parentGuid, tag.updateSequenceNum))
-    
-    def update_tag_from_server(self, local_id, tag):
-        logging.debug("update_tag_from_server guid %s, name %s", tag.guid, tag.name)
-        self._query("UPDATE tags SET guid=?, name=?, parentGuid=?, updateSequenceNum=?, dirty=0 WHERE local_id=?", (tag.guid, tag.name, tag.parentGuid, tag.updateSequenceNum, local_id))
-    
-    def list_tags(self):
-        tags = self._query("SELECT * FROM tags")
-        res = []
-        for tag in tags:
-            res.append({
-                "local_id": tag[0],
-                "guid": tag[1],
-                "name": tag[2],
-                "parentGuid": tag[3],
-                "updateSequenceNum": tag[4],
-                "dirty": tag[5]
-            })
-        return res
-    
-    def delete_tag(self, local_id):
-        logging.debug("delete_tag %d", local_id)
-        self._query("DELETE FROM tags WHERE local_id=?", (local_id,))
-    
-    def rename_tag(self, local_id, new_name):
-        self._query("UPDATE tags SET name=?, dirty=1 WHERE local_id=?", (new_name, local_id))
+    def _format_element(self, element_type, element):
+        if not element_type in ELEMENTS_TYPES:
+            logging.fatal("Unknown element type %s" % element_type)
+            return
         
-    def lookup_notebook_by_guid(self, guid):
-        logging.debug("lookup_notebook_by_guid %s" % guid)
-        res = self._query("SELECT * FROM notebooks WHERE guid=?", (guid,))
-        if len(res) == 1:
-            return {
-                "local_id": res[0][0],
-                "guid": res[0][1],
-                "name": res[0][2],
-                "updateSequenceNum": res[0][3],
-                "defaultNotebook": res[0][4],
-                "dirty": res[0][5]
-            }
-    
-    def lookup_notebook_by_name(self, name):
-        logging.debug("lookup_notebook_by_name %s" % name)
-        res = self._query("SELECT * FROM notebooks WHERE name=?", (name,))
-        if len(res) == 1:
-            return {
-                 "local_id": res[0][0],
-                "guid": res[0][1],
-                "name": res[0][2],
-                "updateSequenceNum": res[0][3],
-                "defaultNotebook": res[0][4],
-                "dirty": res[0][5]
-            }
-    
-    def create_notebook_from_server(self, notebook):
-        logging.debug("create_notebook_from_server guid %s, name %s", notebook.guid, notebook.name)
-        self._query("INSERT INTO notebooks (guid, name, updateSequenceNum, defaultNotebook, dirty) VALUES (?, ?, ?, ?, 0)", (notebook.guid, notebook.name, notebook.updateSequenceNum, notebook.defaultNotebook))
-    
-    def update_notebook_from_server(self, local_id, notebook):
-        logging.debug("update_notebook_from_server guid %s, name %s", notebook.guid, notebook.name)
-        self._query("UPDATE notebooks SET guid=?, name=?, updateSequenceNum=?, defaultNotebook=?, dirty=0 WHERE local_id=?", (notebook.guid, notebook.name, notebook.updateSequenceNum, notebook.defaultNotebook, local_id))
-    
-    def list_notebooks(self):
-        notebooks = self._query("SELECT * FROM notebooks")
-        res = []
-        for notebook in notebooks:
-            res.append({
-                "local_id": notebook[0],
-                "guid": notebook[1],
-                "name": notebook[2],
-                "updateSequenceNum": notebook[3],
-                "defaultNotebook": notebook[4],
-                "dirty": notebook[5]
-            })
+        res = {}
+        for i in range(len(ELEMENTS_FIELDS[element_type])):
+            res[ELEMENTS_FIELDS[element_type][i]] = element[i]
         return res
     
-    def delete_notebook(self, local_id):
-        logging.debug("delete_notebook %d", local_id)
-        self._query("DELETE FROM notebooks WHERE local_id=?", (local_id,))
+    def lookup_element_by_guid(self, element_type, guid):
+        logging.debug("lookup_element_by_guid %s %s" % (element_type, guid))
+        
+        if not element_type in ELEMENTS_TYPES:
+            logging.fatal("Unknown element type %s" % element_type)
+            return
+        
+        res = self._query("SELECT `" + "`, `".join(ELEMENTS_FIELDS[element_type]) + "` FROM " + element_type + " WHERE guid=?", (guid,))
+        if len(res) == 1:
+            return self._format_element(element_type, res[0])
     
-    def rename_notebook(self, local_id, new_name):
-        self._query("UPDATE notebooks SET name=?, dirty=1 WHERE local_id=?", (new_name, local_id))
+    def lookup_element_by_name(self, element_type, name):
+        logging.debug("lookup_element_by_name %s %s" % (element_type, name))
+        
+        if not element_type in ELEMENTS_TYPES:
+            logging.fatal("Unknown element type %s" % element_type)
+            return
+        
+        res = self._query("SELECT " + "`" + "`, `".join(ELEMENTS_FIELDS[element_type]) + "`" + " FROM " + element_type + " WHERE name=?", (name,))
+        if len(res) == 1:
+            return self._format_element(element_type, res[0])
+    
+    def create_element_from_server(self, element_type, element):
+        logging.debug("create_element_from_server %s guid %s" % (element_type, element.guid))
+        
+        if not element_type in ELEMENTS_TYPES:
+            logging.fatal("Unknown element type %s" % element_type)
+            return
+            
+        field_list = [field for field in ELEMENTS_FIELDS[element_type] if field not in ["local_id", "dirty", "tagGuids", "deleted"]] + ["dirty", "deleted"]
+        values_list = [getattr(element, a) for a in [field for field in ELEMENTS_FIELDS[element_type] if field not in ["local_id", "dirty", "tagGuids", "deleted"]]] + [0, 0]
+        
+        if element_type == "notes":
+            field_list += ["tagGuids"]
+            if element.tagGuids:
+                values_list += [",".join(element.tagGuids)]
+            else:
+                values_list += [None]
+        
+        values_match_str = ", ".join(len(values_list) * ["?"])
+        self._query("INSERT INTO " + element_type + " (`" + "`, `".join(field_list) + "`) VALUES (" + values_match_str + ")", tuple(values_list))
+    
+    def update_element_from_server(self, element_type, local_id, element):
+        logging.debug("update_element_from_server %s guid %s" % (element_type, element.guid))
+        
+        if not element_type in ELEMENTS_TYPES:
+            logging.fatal("Unknown element type %s" % element_type)
+            return
+        
+        field_list = [field for field in ELEMENTS_FIELDS[element_type] if field not in ["local_id", "dirty", "tagGuids", "deleted"]] + ["dirty", "deleted"]
+        query_match_array = []
+        values_list = [getattr(element, a) for a in [field for field in ELEMENTS_FIELDS[element_type] if field not in ["local_id", "dirty", "tagGuids", "deleted"]]] + [0, 0]
+        
+        if element_type == "notes":
+            field_list += ["tagGuids"]
+            if element.tagGuids:
+                values_list += [",".join(element.tagGuids)]
+            else:
+                values_list += [None]
+        
+        for field in field_list:
+            query_match_array += ["%s=?" % field]
+        query_match_str = ", ".join(query_match_array)
+        
+        self._query("UPDATE " + element_type + " SET " + query_match_str + " WHERE local_id=?", tuple(values_list) + (local_id,))
+    
+    def list_elements(self, element_type):
+        if not element_type in ELEMENTS_TYPES:
+            logging.fatal("Unknown element type %s" % element_type)
+            return
+            
+        elements = self._query("SELECT `" + "`, `".join(ELEMENTS_FIELDS[element_type]) + "` FROM " + element_type)
+        res = []
+        for element in elements:
+            res.append(self._format_element(element_type, element))
+        return res
+    
+    def delete_element(self, element_type, local_id):
+        logging.debug("delete_element %s %d" % (element_type, local_id))
+        
+        if not element_type in ELEMENTS_TYPES:
+            logging.fatal("Unknown element type %s" % element_type)
+            return
+            
+        self._query("DELETE FROM " + element_type + " WHERE local_id=?", (local_id,))
+    
+    def rename_element(self, element_type, local_id, new_name):
+        logging.debug("rename_element %s %d" % (element_type, local_id))
+        
+        if not element_type in ELEMENTS_TYPES:
+            logging.fatal("Unknown element type %s" % element_type)
+            return
+            
+        self._query("UPDATE " + element_type + " SET name=?, dirty=1 WHERE local_id=?", (new_name, local_id))
 
 class FeverAccount(EventsObject):
     def __init__(self, username):
@@ -274,7 +278,7 @@ class FeverAccount(EventsObject):
         logging.debug("_do_full_sync")
         try:
             chunk_filter = NoteStore.SyncChunkFilter(**{
-                #~ "includeNotes": True,
+                "includeNotes": True,
                 "includeTags": True,
                 "includeNotebooks": True,
                 #~ "includeNoteResources": True,
@@ -293,130 +297,106 @@ class FeverAccount(EventsObject):
                 chunk = noteStore.getFilteredSyncChunk(chunk.chunkHighUSN, 100, chunk_filter)
                 chunks_list.append(chunk)
             
-            tags_list = []
-            notebooks_list = []
+            elements = {"tags": [], "notebooks": [], "notes": []}
             for chunk in chunks_list:
                 if chunk.tags:
-                    tags_list += chunk.tags
+                    elements["tags"] += chunk.tags
                 if chunk.notebooks:
-                    notebooks_list += chunk.notebooks
+                    elements["notebooks"] += chunk.notebooks
+                if chunk.notes:
+                    elements["notes"] += chunk.notes
             
-            # Tags sync
-            tags_to_upload = []
-            tags_on_both_sides = []
-            created_tags = []
-            for server_tag in tags_list:
-                client_tag = self._account_data_db.lookup_tag_by_guid(server_tag.guid)
-                if client_tag:
-                    if server_tag.updateSequenceNum == client_tag["updateSequenceNum"] and not client_tag["dirty"]:
-                        # Nothing to do, tag is in sync
-                        pass
-                    elif server_tag.updateSequenceNum == client_tag["updateSequenceNum"] and client_tag["dirty"]:
-                        tags_to_upload.append((server_tag, client_tag))
-                    elif server_tag.updateSequenceNum > client_tag["updateSequenceNum"] and not client_tag["dirty"]:
-                        self._account_data_db.update_tag_from_server(client_tag["local_id"], server_tag)
-                    elif server_tag.updateSequenceNum > client_tag["updateSequenceNum"] and client_tag["dirty"]:
-                        # Conflict
-                        pass
-                    tags_on_both_sides.append(client_tag["local_id"])
-                else:
-                    client_tag = self._account_data_db.lookup_tag_by_name(server_tag.name)
-                    if client_tag:
-                        if client_tag["dirty"]:
+            # Sync
+            
+            elements_to_upload = {}
+            elements_on_both_sides = {}
+            created_elements = {}
+            for element_type in ELEMENTS_TYPES:
+                elements_to_upload[element_type] = []
+                elements_on_both_sides[element_type] = []
+                created_elements[element_type] = []
+                for server_element in elements[element_type]:
+                    client_element = self._account_data_db.lookup_element_by_guid(element_type, server_element.guid)
+                    if client_element:
+                        if server_element.updateSequenceNum == client_element["updateSequenceNum"] and not client_element["dirty"]:
+                            # Nothing to do, element is in sync
+                            pass
+                        elif server_element.updateSequenceNum == client_element["updateSequenceNum"] and client_element["dirty"]:
+                            if client_element["deleted"]:
+                                if element_type == "tags":
+                                    updateSequenceNum = noteStore.expungeTag(server_element.guid)
+                                elif element_type == "notebooks":
+                                    updateSequenceNum = noteStore.expungeNotebook(server_element.guid)
+                                elif element_type == "notes":
+                                    updateSequenceNum = noteStore.deleteNote(server_element.guid)
+                            else:
+                                elements_to_upload[element_type].append((server_element, client_element))
+                        elif server_element.updateSequenceNum > client_element["updateSequenceNum"] and not client_element["dirty"]:
+                            self._account_data_db.update_element_from_server(element_type, client_element["local_id"], server_element)
+                        elif server_element.updateSequenceNum > client_element["updateSequenceNum"] and client_element["dirty"]:
                             # Conflict
                             pass
+                        elements_on_both_sides[element_type].append(client_element["local_id"])
+                    else:
+                        if element_type in ["tags", "notebooks"]:
+                            client_element = self._account_data_db.lookup_element_by_name(element_type, server_element.name)
                         else:
-                            index = 2
-                            new_name = "%s (%n)" % (client_tag["name"], index)
-                            while self._account_data_db.lookup_tag_by_name(new_name):
-                                index += 1
-                                new_name = "%s (%n)" % (client_tag["name"], index)
-                            self._account_data_db.rename_tag(client_tag["local_id"], new_name)
-                    else:
-                        self._account_data_db.create_tag_from_server(server_tag)
-                        created_tags.append(server_notebook.guid)
-            
-            for client_tag in self._account_data_db.list_tags():
-                if not client_tag["local_id"] in tags_on_both_sides and not client_tag["guid"] in created_tags:
-                    if client_tag["dirty"] == 0 or client_tag["updateSequenceNum"]:
-                        self._account_data_db.delete_tag(client_tag["local_id"])
-                    else:
-                        tags_to_upload.append((None, client_tag))
-            
-            # Notebooks sync
-            notebooks_to_upload = []
-            notebooks_on_both_sides = []
-            created_notebooks = []
-            for server_notebook in notebooks_list:
-                client_notebook = self._account_data_db.lookup_notebook_by_guid(server_notebook.guid)
-                if client_notebook:
-                    if server_notebook.updateSequenceNum == client_notebook["updateSequenceNum"] and not client_notebook["dirty"]:
-                        # Nothing to do, notebook is in sync
-                        pass
-                    elif server_notebook.updateSequenceNum == client_notebook["updateSequenceNum"] and client_notebook["dirty"]:
-                        notebooks_to_upload.append((server_notebook, client_notebook))
-                    elif server_notebook.updateSequenceNum > client_notebook["updateSequenceNum"] and not client_notebook["dirty"]:
-                        self._account_data_db.update_notebook_from_server(client_notebook["local_id"], server_notebook)
-                    elif server_notebook.updateSequenceNum > client_notebook["updateSequenceNum"] and client_notebook["dirty"]:
-                        # Conflict
-                        pass
-                    notebooks_on_both_sides.append(client_notebook["local_id"])
-                else:
-                    client_notebook = self._account_data_db.lookup_notebook_by_name(server_notebook.name)
-                    if client_notebook:
-                        if client_notebook["dirty"]:
-                            # Conflict
-                            pass
+                            client_element = None
+                        if client_element:
+                            if client_element["dirty"]:
+                                # Conflict
+                                pass
+                            else:
+                                index = 2
+                                new_name = "%s (%n)" % (client_element["name"], index)
+                                while self._account_data_db.lookup_element_by_name(element_type, new_name):
+                                    index += 1
+                                    new_name = "%s (%n)" % (client_element["name"], index)
+                                self._account_data_db.rename_element(element_type, client_element["local_id"], new_name)
                         else:
-                            index = 2
-                            new_name = "%s (%n)" % (client_notebook["name"], index)
-                            while self._account_data_db.lookup_notebook_by_name(new_name):
-                                index += 1
-                                new_name = "%s (%n)" % (client_notebook["name"], index)
-                            self._account_data_db.rename_notebook(client_notebook["local_id"], new_name)
-                    else:
-                        self._account_data_db.create_notebook_from_server(server_notebook)
-                        created_notebooks.append(server_notebook.guid)
-            
-            for client_notebook in self._account_data_db.list_notebooks():
-                if not client_notebook["local_id"] in notebooks_on_both_sides and not client_notebook["guid"] in created_notebooks:
-                    if client_notebook["dirty"] == 0 or client_notebook["updateSequenceNum"]:
-                        self._account_data_db.delete_notebook(client_notebook["local_id"])
-                    else:
-                        notebooks_to_upload.append((None, client_notebook))
+                            self._account_data_db.create_element_from_server(element_type, server_element)
+                            created_elements[element_type].append(server_element.guid)
             
             #~ self.lastUpdateCount = chunk.updateCount
             #~ self.lastSyncTime = chunk.currentTime
             
+            for element_type in ELEMENTS_TYPES:
+                for client_element in self._account_data_db.list_elements(element_type):
+                    if not client_element["local_id"] in elements_on_both_sides[element_type] and not client_element["guid"] in created_elements[element_type]:
+                        if client_element["deleted"] == 1 or client_element["dirty"] == 0 or client_element["updateSequenceNum"]:
+                            self._account_data_db.delete_element(element_type, client_element["local_id"])
+                        else:
+                            elements_to_upload[element_type].append((None, client_element))
+            
             need_incremental_sync = False
             
-            # Tags upload
-            for server_tag, client_tag in tags_to_upload:
-                if client_tag["updateSequenceNum"]:
-                    server_tag.name = client_tag["name"]
-                    updateSequenceNum = noteStore.updateTag(server_tag)
-                    if updateSequenceNum == self.lastUpdateCount + 1:
-                        self.lastUpdateCount = updateSequenceNum
+            # Upload
+            for element_type in ELEMENTS_TYPES:
+                for server_element, client_element in elements_to_upload[element_type]:
+                    if client_element["updateSequenceNum"]:
+                        if element_type == "notes":
+                            server_element.title = client_element["title"]
+                        else:
+                            server_element.name = client_element["name"]
+                        if element_type == "tags":
+                            updateSequenceNum = noteStore.updateTag(server_element)
+                        elif element_type == "notebooks":
+                            updateSequenceNum = noteStore.updateNotebook(server_element)
+                        elif element_type == "notes":
+                            updateSequenceNum = noteStore.updateNote(server_element)
+                        if updateSequenceNum == self.lastUpdateCount + 1:
+                            self.lastUpdateCount = updateSequenceNum
+                        else:
+                            need_incremental_sync = True
+                        self._account_data_db.update_element_from_server(element_type, client_element["local_id"], server_element)
                     else:
-                        need_incremental_sync = True
-                    self._account_data_db.update_tag_from_server(client_tag["local_id"], server_tag)
-                else:
-                    server_tag = noteStore.createTag(EvernoteTypes.Tag(name = client_tag["name"]))
-                    self._account_data_db.update_tag_from_server(client_tag["local_id"], server_tag)
-            
-            # Notebooks upload
-            for server_notebook, client_notebook in notebooks_to_upload:
-                if client_notebook["updateSequenceNum"]:
-                    server_notebook.name = client_notebook["name"]
-                    updateSequenceNum = noteStore.updateNotebook(server_notebook)
-                    if updateSequenceNum == self.lastUpdateCount + 1:
-                        self.lastUpdateCount = updateSequenceNum
-                    else:
-                        need_incremental_sync = True
-                    self._account_data_db.update_notebook_from_server(client_notebook["local_id"], server_notebook)
-                else:
-                    server_notebook = noteStore.createNotebook(EvernoteTypes.Notebook(name = client_notebook["name"]))
-                    self._account_data_db.update_notebook_from_server(client_notebook["local_id"], server_notebook)
+                        if element_type == "tags":
+                            server_element = noteStore.createTag(EvernoteTypes.Tag(name = client_element["name"]))
+                        elif element_type == "notebooks":
+                            server_element = noteStore.createNotebook(EvernoteTypes.Notebook(name = client_element["name"]))
+                        elif element_type == "notes":
+                            server_element = noteStore.createNote(EvernoteTypes.Note(title = client_element["title"]))
+                        self._account_data_db.update_element_from_server(element_type, client_element["local_id"], server_element)
         except:
             logging.error(sys.exc_info())
     
