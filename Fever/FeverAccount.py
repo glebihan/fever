@@ -22,6 +22,11 @@ ELEMENTS_FIELDS = {
     "notebooks": ["local_id", "guid", "name", "updateSequenceNum", "defaultNotebook", "dirty", "deleted"],
     "notes": ["local_id", "guid", "title", "content", "contentHash", "contentLength", "active", "updateSequenceNum", "notebookGuid", "tagGuids", "dirty", "deleted"]
 }
+ELEMENTS_UPLOAD_FIELDS = {
+    "tags": ["name"],
+    "notebooks": ["name"],
+    "notes": ["title", "content", "active", "notebookGuid", "tagGuids"]
+}
 
 class FeverAccountDB(object):
     def __init__(self, db_file):
@@ -382,11 +387,8 @@ class FeverAccount(EventsObject):
             for element_type in ELEMENTS_TYPES:
                 for server_element, client_element in elements_to_upload[element_type]:
                     if client_element["updateSequenceNum"]:
-                        if element_type == "notes":
-                            server_element.title = client_element["title"]
-                            server_element.content = client_element["content"]
-                        else:
-                            server_element.name = client_element["name"]
+                        for field in ELEMENTS_UPLOAD_FIELDS[element_type]:
+                            setattr(server_element, field, client_element[field])
                         if element_type == "tags":
                             updateSequenceNum = noteStore.updateTag(server_element)
                         elif element_type == "notebooks":
