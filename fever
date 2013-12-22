@@ -1,0 +1,33 @@
+#! /usr/bin/python
+# -*- coding=utf-8 -*-
+
+from Fever.main import Application
+import optparse
+import gettext
+import logging
+
+gettext.install("fever", "/usr/share/locale")
+
+if __name__ == "__main__":
+    optparser = optparse.OptionParser()
+    optparser.add_option('--share-dir', dest = "share_dir", default = "/usr/share", help = _("Set share folder path"))
+    optparser.add_option('-d', '--debug-level', dest = "debug_level", default = 1, help = _("Set debug level"), type = int)
+    options, args = optparser.parse_args()
+    
+    if options.debug_level > 4:
+        options.debug_level = 4
+    if options.debug_level < 0:
+        options.debug_level = 0
+    
+    if options.debug_level == 4:
+        logging.getLogger().setLevel(logging.DEBUG)
+    elif options.debug_level == 3:
+        logging.getLogger().setLevel(logging.INFO)
+    elif options.debug_level == 2:
+        logging.getLogger().setLevel(logging.WARNING)
+    elif options.debug_level == 1:
+        logging.getLogger().setLevel(logging.ERROR)
+    elif options.debug_level == 0:
+        logging.getLogger().setLevel(logging.CRITICAL)
+    
+    Application(options).run()
