@@ -16,15 +16,17 @@ from evernote.api.client import EvernoteClient
 from evernote.edam.notestore import NoteStore
 from evernote.edam.type import ttypes as EvernoteTypes
 
-ELEMENTS_TYPES = ["tags", "notebooks", "notes"]
+ELEMENTS_TYPES = ["tags", "notebooks", "resources", "notes"]
 ELEMENTS_FIELDS = {
     "tags": ["local_id", "guid", "name", "parentGuid", "updateSequenceNum", "dirty", "deleted"],
     "notebooks": ["local_id", "guid", "name", "updateSequenceNum", "defaultNotebook", "dirty", "deleted"],
+    "resources": ["local_id", "guid", "noteGuid", "data", "mime", "width", "height", "updateSequenceNum", "dirty", "deleted"],
     "notes": ["local_id", "guid", "title", "content", "contentHash", "contentLength", "active", "updateSequenceNum", "notebookGuid", "tagGuids", "dirty", "deleted"]
 }
 ELEMENTS_UPLOAD_FIELDS = {
     "tags": ["name"],
     "notebooks": ["name"],
+    "resources": ["noteGuid", "data", "mime", "width", "height"],
     "notes": ["title", "content", "active", "notebookGuid", "tagGuids"]
 }
 
@@ -65,6 +67,7 @@ class FeverAccountDB(object):
         self._query("CREATE TABLE IF NOT EXISTS global_data (`key` TEXT, `value` TEXT)")
         self._query("CREATE TABLE IF NOT EXISTS tags (`local_id` INTEGER PRIMARY KEY, `guid` TEXT, name TEXT, parentGuid TEXT, updateSequenceNum NUMERIC, dirty NUMERIC DEFAULT 0, deleted NUMERIC DEFAULT 0)")
         self._query("CREATE TABLE IF NOT EXISTS notebooks (`local_id` INTEGER PRIMARY KEY, `guid` TEXT, name TEXT, updateSequenceNum NUMERIC, defaultNotebook NUMERIC DEFAULT 0, dirty NUMERIC DEFAULT 0, deleted NUMERIC DEFAULT 0)")
+        self._query("CREATE TABLE IF NOT EXISTS resources (`local_id` INTEGER PRIMARY KEY, `guid` TEXT, noteGuid TEXT, data TEXT, mime TEXT, width NUMERIC, height NUMERIC, updateSequenceNum NUMERIC, dirty NUMERIC DEFAULT 0, deleted NUMERIC DEFAULT 0)")
         self._query("CREATE TABLE IF NOT EXISTS notes (`local_id` INTEGER PRIMARY KEY, `guid` TEXT, title TEXT, content TEXT, contentHash TEXT, contentLength NUMERIC, active NUMERIC DEFAULT 1, updateSequenceNum NUMERIC, notebookGuid TEXT, tagGuids TEXT, dirty NUMERIC DEFAULT 0, deleted NUMERIC DEFAULT 0)")
     
     def _push_query(self, sql, params, condition):
@@ -313,7 +316,7 @@ class FeverAccount(EventsObject):
                 "includeNotebooks": True,
                 #~ "includeNoteResources": True,
                 #~ "includeNoteAttributes": True,
-                #~ "includeResources": True,
+                "includeResources": True,
                 #~ "includeLinkedNotebooks": True,
                 "includeExpunged": True
             })
@@ -327,12 +330,14 @@ class FeverAccount(EventsObject):
                 chunk = noteStore.getFilteredSyncChunk(chunk.chunkHighUSN, 100, chunk_filter)
                 chunks_list.append(chunk)
             
-            elements = {"tags": [], "notebooks": [], "notes": []}
+            elements = {"tags": [], "notebooks": [], "resources": [], "notes": []}
             for chunk in chunks_list:
                 if chunk.tags:
                     elements["tags"] += chunk.tags
                 if chunk.notebooks:
                     elements["notebooks"] += chunk.notebooks
+                if chunk.resources:
+                    elements["resources"] += chunk.resources
                 if chunk.notes:
                     elements["notes"] += chunk.notes
             
@@ -364,6 +369,9 @@ class FeverAccount(EventsObject):
                         elif server_element.updateSequenceNum > client_element["updateSequenceNum"] and not client_element["dirty"]:
                             if element_type == "notes" and server_element.contentHash != client_element["contentHash"]:
                                 server_element.content = noteStore.getNoteContent(server_element.guid)
+                            elif element_type == "resources":
+                                # Need to check hash
+                                server_element.data = noteStore.getResourceData(server_element.guid)
                             self._account_data_db.update_element_from_server(element_type, client_element["local_id"], server_element)
                         elif server_element.updateSequenceNum > client_element["updateSequenceNum"] and client_element["dirty"]:
                             # Conflict
@@ -388,6 +396,8 @@ class FeverAccount(EventsObject):
                         else:
                             if element_type == "notes":
                                 server_element.content = noteStore.getNoteContent(server_element.guid)
+                            elif element_type == "resources":
+                                server_element.data = noteStore.getResourceData(server_element.guid)
                             self._account_data_db.create_element_from_server(element_type, server_element)
                             created_elements[element_type].append(server_element.guid)
             

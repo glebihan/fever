@@ -15,6 +15,11 @@ from evernote.edam.type import ttypes as Types
 class NoteEditor(webkit.WebView):
     def __init__(self, application):
         webkit.WebView.__init__(self)
+        self.get_settings().set_property('enable_universal_access_from_file_uris', True)
+        self.get_settings().set_property('enable_file_access_from_file_uris', True)
+        self.get_settings().set_property('enable-running-of-insecure-content', True)
+        self.get_settings().set_property('enable-display-of-insecure-content', True)
+        self.get_settings().set_property('auto-load-images', True)
 
 class FeverWindow(gtk.Window):
     def __init__(self, app):
@@ -51,7 +56,7 @@ class Application(object):
     
     def edit_note(self, note_local_id):
         note = self._account.get_note(note_local_id)
-        self._note_editor.load_html_string(note["content"], "https://www.evernote.com/")
+        self._note_editor.load_html_string(note["content"], "https://sandbox.evernote.com/")
     
     def _notes_treeview_selection_changed(self, selection):
         store, paths = selection.get_selected_rows()
@@ -91,6 +96,7 @@ class Application(object):
         self._refresh_display()
     
     def _on_account_sync_done(self, account):
+        #~ gtk.main_quit()
         self._refresh_display()
         
     def _refresh_display(self):
