@@ -11,6 +11,7 @@ import json
 import threading
 import sqlite3
 import gobject
+import binascii
 
 from evernote.api.client import EvernoteClient
 from evernote.edam.notestore import NoteStore
@@ -20,7 +21,7 @@ ELEMENTS_TYPES = ["tags", "notebooks", "resources", "notes"]
 ELEMENTS_FIELDS = {
     "tags": ["local_id", "guid", "name", "parentGuid", "updateSequenceNum", "dirty", "deleted"],
     "notebooks": ["local_id", "guid", "name", "updateSequenceNum", "defaultNotebook", "dirty", "deleted"],
-    "resources": ["local_id", "guid", "noteGuid", "data", "mime", "width", "height", "updateSequenceNum", "dirty", "deleted"],
+    "resources": ["local_id", "guid", "noteGuid", "data", "bodyHash", "mime", "width", "height", "updateSequenceNum", "dirty", "deleted"],
     "notes": ["local_id", "guid", "title", "content", "contentHash", "contentLength", "active", "updateSequenceNum", "notebookGuid", "tagGuids", "dirty", "deleted"]
 }
 ELEMENTS_UPLOAD_FIELDS = {
@@ -67,7 +68,7 @@ class FeverAccountDB(object):
         self._query("CREATE TABLE IF NOT EXISTS global_data (`key` TEXT, `value` TEXT)")
         self._query("CREATE TABLE IF NOT EXISTS tags (`local_id` INTEGER PRIMARY KEY, `guid` TEXT, name TEXT, parentGuid TEXT, updateSequenceNum NUMERIC, dirty NUMERIC DEFAULT 0, deleted NUMERIC DEFAULT 0)")
         self._query("CREATE TABLE IF NOT EXISTS notebooks (`local_id` INTEGER PRIMARY KEY, `guid` TEXT, name TEXT, updateSequenceNum NUMERIC, defaultNotebook NUMERIC DEFAULT 0, dirty NUMERIC DEFAULT 0, deleted NUMERIC DEFAULT 0)")
-        self._query("CREATE TABLE IF NOT EXISTS resources (`local_id` INTEGER PRIMARY KEY, `guid` TEXT, noteGuid TEXT, data TEXT, mime TEXT, width NUMERIC, height NUMERIC, updateSequenceNum NUMERIC, dirty NUMERIC DEFAULT 0, deleted NUMERIC DEFAULT 0)")
+        self._query("CREATE TABLE IF NOT EXISTS resources (`local_id` INTEGER PRIMARY KEY, `guid` TEXT, noteGuid TEXT, data TEXT, bodyHash TEXT, mime TEXT, width NUMERIC, height NUMERIC, updateSequenceNum NUMERIC, dirty NUMERIC DEFAULT 0, deleted NUMERIC DEFAULT 0)")
         self._query("CREATE TABLE IF NOT EXISTS notes (`local_id` INTEGER PRIMARY KEY, `guid` TEXT, title TEXT, content TEXT, contentHash TEXT, contentLength NUMERIC, active NUMERIC DEFAULT 1, updateSequenceNum NUMERIC, notebookGuid TEXT, tagGuids TEXT, dirty NUMERIC DEFAULT 0, deleted NUMERIC DEFAULT 0)")
     
     def _push_query(self, sql, params, condition):
@@ -242,6 +243,15 @@ class FeverAccountDB(object):
             return
         
         return self._format_element(element_type, self._query("SELECT `" + "`, `".join(ELEMENTS_FIELDS[element_type]) + "` FROM " + element_type + " WHERE local_id=?", (local_id,))[0])
+    
+    def get_element_by_hash(self, element_type, element_hash):
+        logging.debug("get_element_by_hash %s %s" % (element_type, element_hash))
+        
+        if not element_type in ELEMENTS_TYPES:
+            logging.fatal("Unknown element type %s" % element_type)
+            return
+        
+        return self._format_element(element_type, self._query("SELECT `" + "`, `".join(ELEMENTS_FIELDS[element_type]) + "` FROM " + element_type + " WHERE bodyHash=?", (element_hash,))[0])
 
 class FeverAccount(EventsObject):
     def __init__(self, username):
@@ -262,6 +272,9 @@ class FeverAccount(EventsObject):
     
     def get_note(self, note_local_id):
         return self._account_data_db.get_element("notes", note_local_id)
+    
+    def get_resource_by_hash(self, resource_hash):
+        return self._account_data_db.get_element_by_hash("resources", resource_hash)
     
     def destroy(self):
         self.disconnect_all()
@@ -370,8 +383,11 @@ class FeverAccount(EventsObject):
                             if element_type == "notes" and server_element.contentHash != client_element["contentHash"]:
                                 server_element.content = noteStore.getNoteContent(server_element.guid)
                             elif element_type == "resources":
-                                # Need to check hash
-                                server_element.data = noteStore.getResourceData(server_element.guid)
+                                server_element.bodyHash = binascii.b2a_hex(server_element.data.bodyHash)
+                                if server_element.data.bodyHash != binascii.b2a_hex(server_element.data.bodyHash):
+                                    server_element.data = noteStore.getResourceData(server_element.guid)
+                                else:
+                                    server_element.data = client_element["data"]
                             self._account_data_db.update_element_from_server(element_type, client_element["local_id"], server_element)
                         elif server_element.updateSequenceNum > client_element["updateSequenceNum"] and client_element["dirty"]:
                             # Conflict
@@ -397,6 +413,7 @@ class FeverAccount(EventsObject):
                             if element_type == "notes":
                                 server_element.content = noteStore.getNoteContent(server_element.guid)
                             elif element_type == "resources":
+                                server_element.bodyHash = binascii.b2a_hex(server_element.data.bodyHash)
                                 server_element.data = noteStore.getResourceData(server_element.guid)
                             self._account_data_db.create_element_from_server(element_type, server_element)
                             created_elements[element_type].append(server_element.guid)

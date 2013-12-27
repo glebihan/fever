@@ -5,9 +5,13 @@ import os
 import sys
 import threading
 import webkit
-import gtk, gobject
+import gtk
+import gobject
+import libxml2
+import binascii
 
 from FeverAccount import FeverAccount
+from HTMLNode import HTMLNode
 
 from evernote.api.client import EvernoteClient
 from evernote.edam.type import ttypes as Types
@@ -56,7 +60,15 @@ class Application(object):
     
     def edit_note(self, note_local_id):
         note = self._account.get_note(note_local_id)
-        self._note_editor.load_html_string(note["content"], "https://sandbox.evernote.com/")
+        tree = libxml2.htmlParseDoc(note["content"], "utf-8")
+        document = HTMLNode(tree.getRootElement())
+        for img in document.find("en-media"):
+            resource = self._account.get_resource_by_hash(img.prop("hash"))
+            new_img = libxml2.newNode("img")
+            new_img.newProp("src", "data:%s;base64,%s" % (resource['mime'], binascii.b2a_base64(resource['data'])))
+            new_img.newProp("hash", img.prop("hash"))
+            img.replaceNode(new_img)
+        self._note_editor.load_html_string(str(tree), "https://sandbox.evernote.com/")
     
     def _notes_treeview_selection_changed(self, selection):
         store, paths = selection.get_selected_rows()
