@@ -285,6 +285,9 @@ class FeverAccount(EventsObject):
     def update_note_contents(self, note_local_id, contents):
         self._account_data_db.update_element_field("notes", "content", note_local_id, contents)
     
+    def update_note_title(self, note_local_id, title):
+        self._account_data_db.update_element_field("notes", "title", note_local_id, title)
+    
     def get_resource_by_hash(self, resource_hash):
         return self._account_data_db.get_element_by_hash("resources", resource_hash)
     
@@ -450,16 +453,16 @@ class FeverAccount(EventsObject):
                         for field in ELEMENTS_UPLOAD_FIELDS[element_type]:
                             setattr(server_element, field, client_element[field])
                         if element_type == "tags":
-                            updateSequenceNum = noteStore.updateTag(server_element)
+                            new_server_element = noteStore.updateTag(server_element)
                         elif element_type == "notebooks":
-                            updateSequenceNum = noteStore.updateNotebook(server_element)
+                            new_server_element = noteStore.updateNotebook(server_element)
                         elif element_type == "notes":
-                            updateSequenceNum = noteStore.updateNote(server_element)
-                        if updateSequenceNum == self.lastUpdateCount + 1:
-                            self.lastUpdateCount = updateSequenceNum
+                            new_server_element = noteStore.updateNote(server_element)
+                        if new_server_element.updateSequenceNum == self.lastUpdateCount + 1:
+                            self.lastUpdateCount = new_server_element.updateSequenceNum
                         else:
                             need_incremental_sync = True
-                        self._account_data_db.update_element_from_server(element_type, client_element["local_id"], server_element)
+                        self._account_data_db.update_element_from_server(element_type, client_element["local_id"], new_server_element)
                     else:
                         if element_type == "tags":
                             server_element = noteStore.createTag(EvernoteTypes.Tag(name = client_element["name"]))

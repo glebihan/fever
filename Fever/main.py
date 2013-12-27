@@ -11,6 +11,7 @@ import libxml2
 import binascii
 import urllib
 import urlparse
+import htmlentitydefs
 
 from FeverAccount import FeverAccount
 from HTMLNode import HTMLNode
@@ -38,6 +39,7 @@ class Application(object):
         self._cli_options.share_dir = os.path.abspath(self._cli_options.share_dir)
         
         self._account = None
+        self._is_quitting = False
         
         builder = gtk.Builder()
         builder.add_from_file(os.path.join(cli_options.share_dir, "fever", "ui", "main.glade"))
@@ -69,13 +71,17 @@ class Application(object):
             note_local_id = int(params[:i])
             contents = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE en-note SYSTEM \"http://xml.evernote.com/pub/enml2.dtd\"><en-note>" + params[i+1:] + "</en-note>"
             self._account.update_note_contents(note_local_id, contents)
+        elif command == "set_note_title":
+            i = params.index(":")
+            note_local_id = int(params[:i])
+            title = params[i+1:]
+            self._account.update_note_title(note_local_id, title)
             
         return True
     
     def edit_note(self, note_local_id):
         note = self._account.get_note(note_local_id)
         tree = libxml2.htmlParseDoc(note["content"], "utf-8")
-        print tree
         document = HTMLNode(tree.getRootElement())
         for img in document.find("en-media"):
             resource = self._account.get_resource_by_hash(img.prop("hash"))
@@ -92,12 +98,32 @@ class Application(object):
                 editor.on('change', function(e){
                     alert('set_note_contents:%d:' + editor.getContent());
                 });
-            }
+            },
+            toolbar: false,
+            menubar: false,
+            statusbar: false
          });
         </script>
+        <input type='text' id='title' value='%s' style='width: 100%%; border: none; outline: none; padding: 0; line-height: 15px; font-size: 15px; color: #7b7c7e; font-family: caecilia, serif; height: 32px;'/>
         <div id='tinymce'>%s</div>
-        """ % (urlparse.urljoin('file:', urllib.pathname2url(os.path.join(self._cli_options.share_dir, "fever", "tinymce", "js", "tinymce", "tinymce.min.js"))), note['local_id'], str(document))
+        <script type="text/javascript">
+        document.getElementById('title').onchange = function(event){
+            alert('set_note_title:%d:' + document.getElementById('title').value);
+        }
+        </script>
+        """ % (urlparse.urljoin('file:', urllib.pathname2url(os.path.join(self._cli_options.share_dir, "fever", "tinymce", "js", "tinymce", "tinymce.min.js"))), note['local_id'], self._htmlentities_encode(note['title']), str(document), note['local_id'])
         self._note_editor.load_html_string(contents, "file:///")
+    
+    def _htmlentities_encode(self, string):
+        res = ""
+        for i in unicode(string):
+            if ord(i) in htmlentitydefs.codepoint2name:
+                res += "&" + htmlentitydefs.codepoint2name[ord(i)] + ";"
+            elif i == "'":
+                res += "&#039;"
+            else:
+                res += i
+        return res
     
     def _notes_treeview_selection_changed(self, selection):
         store, paths = selection.get_selected_rows()
@@ -106,7 +132,12 @@ class Application(object):
             self.edit_note(note_local_id)
     
     def _check_quit(self):
-        gtk.main_quit()
+        self._window.hide()
+        self._is_quitting = True
+        if self._account:
+            self._account.sync()
+        else:
+            gtk.main_quit()
         return False
     
     def _on_window_delete_event(self, window, event):
@@ -137,8 +168,10 @@ class Application(object):
         self._refresh_display()
     
     def _on_account_sync_done(self, account):
-        #~ gtk.main_quit()
-        self._refresh_display()
+        if self._is_quitting:
+            gtk.main_quit()
+        else:
+            self._refresh_display()
         
     def _refresh_display(self):
         self._tags_liststore.clear()
