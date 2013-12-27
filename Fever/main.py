@@ -9,6 +9,8 @@ import gtk
 import gobject
 import libxml2
 import binascii
+import urllib
+import urlparse
 
 from FeverAccount import FeverAccount
 from HTMLNode import HTMLNode
@@ -19,11 +21,8 @@ from evernote.edam.type import ttypes as Types
 class NoteEditor(webkit.WebView):
     def __init__(self, application):
         webkit.WebView.__init__(self)
-        self.get_settings().set_property('enable_universal_access_from_file_uris', True)
-        self.get_settings().set_property('enable_file_access_from_file_uris', True)
-        self.get_settings().set_property('enable-running-of-insecure-content', True)
-        self.get_settings().set_property('enable-display-of-insecure-content', True)
-        self.get_settings().set_property('auto-load-images', True)
+        settings = self.get_settings()
+        settings.set_property('enable-file-access-from-file-uris', 1)
 
 class FeverWindow(gtk.Window):
     def __init__(self, app):
@@ -36,6 +35,7 @@ class FeverWindow(gtk.Window):
 class Application(object):
     def __init__(self, cli_options):
         self._cli_options = cli_options
+        self._cli_options.share_dir = os.path.abspath(self._cli_options.share_dir)
         
         self._account = None
         
@@ -48,6 +48,7 @@ class Application(object):
         self._note_container = builder.get_object("note_container")
         self._note_editor = NoteEditor(self)
         self._note_container.add(self._note_editor)
+        self._note_editor.connect("script-alert", self._on_note_editor_message)
         
         self._tags_liststore = builder.get_object("tags_liststore")
         self._notebooks_liststore = builder.get_object("notebooks_liststore")
@@ -58,9 +59,23 @@ class Application(object):
         builder.get_object("quit_action").connect("activate", self._on_quit_clicked)
         builder.get_object("notes_treeview").get_selection().connect("changed", self._notes_treeview_selection_changed)
     
+    def _on_note_editor_message(self, editor, frame, message):
+        i = message.index(":")
+        command = message[:i]
+        params = message[i+1:]
+        
+        if command == "set_note_contents":
+            i = params.index(":")
+            note_local_id = int(params[:i])
+            contents = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE en-note SYSTEM \"http://xml.evernote.com/pub/enml2.dtd\"><en-note>" + params[i+1:] + "</en-note>"
+            self._account.update_note_contents(note_local_id, contents)
+            
+        return True
+    
     def edit_note(self, note_local_id):
         note = self._account.get_note(note_local_id)
         tree = libxml2.htmlParseDoc(note["content"], "utf-8")
+        print tree
         document = HTMLNode(tree.getRootElement())
         for img in document.find("en-media"):
             resource = self._account.get_resource_by_hash(img.prop("hash"))
@@ -68,7 +83,21 @@ class Application(object):
             new_img.newProp("src", "data:%s;base64,%s" % (resource['mime'], binascii.b2a_base64(resource['data'])))
             new_img.newProp("hash", img.prop("hash"))
             img.replaceNode(new_img)
-        self._note_editor.load_html_string(str(tree), "https://sandbox.evernote.com/")
+        contents = """
+        <script type='text/javascript' src='%s'></script>
+        <script type="text/javascript">
+        tinymce.init({
+            selector: "#tinymce",
+            setup: function(editor){
+                editor.on('change', function(e){
+                    alert('set_note_contents:%d:' + editor.getContent());
+                });
+            }
+         });
+        </script>
+        <div id='tinymce'>%s</div>
+        """ % (urlparse.urljoin('file:', urllib.pathname2url(os.path.join(self._cli_options.share_dir, "fever", "tinymce", "js", "tinymce", "tinymce.min.js"))), note['local_id'], str(document))
+        self._note_editor.load_html_string(contents, "file:///")
     
     def _notes_treeview_selection_changed(self, selection):
         store, paths = selection.get_selected_rows()

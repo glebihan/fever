@@ -252,6 +252,15 @@ class FeverAccountDB(object):
             return
         
         return self._format_element(element_type, self._query("SELECT `" + "`, `".join(ELEMENTS_FIELDS[element_type]) + "` FROM " + element_type + " WHERE bodyHash=?", (element_hash,))[0])
+    
+    def update_element_field(self, element_type, field, local_id, value):
+        logging.debug("update_element_field %s %s %d %s" % (element_type, field, local_id, value))
+        
+        if not element_type in ELEMENTS_TYPES:
+            logging.fatal("Unknown element type %s" % element_type)
+            return
+        
+        self._query("UPDATE " + element_type + " SET " + field + "=?, dirty=1 WHERE local_id=?", (value, local_id))
 
 class FeverAccount(EventsObject):
     def __init__(self, username):
@@ -272,6 +281,9 @@ class FeverAccount(EventsObject):
     
     def get_note(self, note_local_id):
         return self._account_data_db.get_element("notes", note_local_id)
+    
+    def update_note_contents(self, note_local_id, contents):
+        self._account_data_db.update_element_field("notes", "content", note_local_id, contents)
     
     def get_resource_by_hash(self, resource_hash):
         return self._account_data_db.get_element_by_hash("resources", resource_hash)
@@ -391,7 +403,7 @@ class FeverAccount(EventsObject):
                             self._account_data_db.update_element_from_server(element_type, client_element["local_id"], server_element)
                         elif server_element.updateSequenceNum > client_element["updateSequenceNum"] and client_element["dirty"]:
                             # Conflict
-                            pass
+                            logging.warn("CONFLICT : server_element.updateSequenceNum > client_element[\"updateSequenceNum\"] and client_element[\"dirty\"]")
                         elements_on_both_sides[element_type].append(client_element["local_id"])
                     else:
                         if element_type in ["tags", "notebooks"]:
@@ -401,7 +413,7 @@ class FeverAccount(EventsObject):
                         if client_element:
                             if client_element["dirty"]:
                                 # Conflict
-                                pass
+                                logging.warn("CONFLICT : client_element[\"dirty\"]")
                             else:
                                 index = 2
                                 new_name = "%s (%n)" % (client_element["name"], index)
