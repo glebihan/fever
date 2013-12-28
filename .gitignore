@@ -1,3 +1,6 @@
 evernote_dev_token
 *.pyc
 share/fever/tinymce
+Fever/evernote
+Fever/thrift
+build

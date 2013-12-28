@@ -50,11 +50,15 @@ package_dir = {}
 for i in packages:
     package_dir[i] = i.replace(".", "/")
 
+# build tinymce
 os.chdir("tinymce")
 os.system("npm install")
 os.system("jake")
 os.chdir("..")
 os.system("cp -R tinymce/js/tinymce share/fever")
+
+# package evernote API
+os.system("cp -R evernote/lib/evernote evernote/lib/thrift Fever")
 
 setup(
     name = UNIX_APPNAME,
