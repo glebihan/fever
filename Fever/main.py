@@ -89,29 +89,17 @@ class Application(object):
             new_img.newProp("src", "data:%s;base64,%s" % (resource['mime'], binascii.b2a_base64(resource['data'])))
             new_img.newProp("hash", img.prop("hash"))
             img.replaceNode(new_img)
-        contents = """
-        <script type='text/javascript' src='%s'></script>
-        <script type="text/javascript">
-        tinymce.init({
-            selector: "#tinymce",
-            setup: function(editor){
-                editor.on('change', function(e){
-                    alert('set_note_contents:%d:' + editor.getContent());
-                });
-            },
-            toolbar: false,
-            menubar: false,
-            statusbar: false
-         });
-        </script>
-        <input type='text' id='title' value='%s' style='width: 100%%; border: none; outline: none; padding: 0; line-height: 15px; font-size: 15px; color: #7b7c7e; font-family: caecilia, serif; height: 32px;'/>
-        <div id='tinymce'>%s</div>
-        <script type="text/javascript">
-        document.getElementById('title').onchange = function(event){
-            alert('set_note_title:%d:' + document.getElementById('title').value);
+        replace_data = {
+            "note_local_id": str(note_local_id),
+            "note_contents": str(document),
+            "note_title": self._htmlentities_encode(note['title']),
+            "tinymce_src": urlparse.urljoin('file:', urllib.pathname2url(os.path.join(self._cli_options.share_dir, "fever", "tinymce", "tinymce.min.js")))
         }
-        </script>
-        """ % (urlparse.urljoin('file:', urllib.pathname2url(os.path.join(self._cli_options.share_dir, "fever", "tinymce", "tinymce.min.js"))), note['local_id'], self._htmlentities_encode(note['title']), str(document), note['local_id'])
+        f = open(os.path.join(self._cli_options.share_dir, "fever", "ui", "note_editor.html"), "r")
+        contents = f.read()
+        f.close()
+        for key in replace_data:
+            contents = contents.replace("%%%s%%" % key, replace_data[key])
         self._note_editor.load_html_string(contents, "file:///")
     
     def _htmlentities_encode(self, string):
