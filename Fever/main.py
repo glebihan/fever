@@ -111,7 +111,7 @@ class Application(object):
             alert('set_note_title:%d:' + document.getElementById('title').value);
         }
         </script>
-        """ % (urlparse.urljoin('file:', urllib.pathname2url(os.path.join(self._cli_options.share_dir, "fever", "tinymce", "js", "tinymce", "tinymce.min.js"))), note['local_id'], self._htmlentities_encode(note['title']), str(document), note['local_id'])
+        """ % (urlparse.urljoin('file:', urllib.pathname2url(os.path.join(self._cli_options.share_dir, "fever", "tinymce", "tinymce.min.js"))), note['local_id'], self._htmlentities_encode(note['title']), str(document), note['local_id'])
         self._note_editor.load_html_string(contents, "file:///")
     
     def _htmlentities_encode(self, string):

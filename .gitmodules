@@ -1,3 +1,6 @@
 [submodule "evernote"]
 	path = evernote
 	url = git://github.com/evernote/evernote-sdk-python/
+[submodule "tinymce"]
+	path = tinymce
+	url = https://github.com/tinymce/tinymce.git
