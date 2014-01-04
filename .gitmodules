@@ -4,3 +4,6 @@
 [submodule "tinymce"]
 	path = tinymce
 	url = https://github.com/tinymce/tinymce.git
+[submodule "jqTree"]
+	path = jqTree
+	url = https://github.com/mbraak/jqTree.git
