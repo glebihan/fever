@@ -151,8 +151,8 @@ class FeverAccountDB(object):
             logging.fatal("Unknown element type %s" % element_type)
             return
             
-        field_list = [field for field in [f["field_name"] for f in DB_STRUCTURE[element_type]] if field not in ["local_id", "dirty", "tagGuids", "deleted"]] + ["dirty", "deleted"]
-        values_list = [getattr(element, a) for a in [field for field in [f["field_name"] for f in DB_STRUCTURE[element_type]] if field not in ["local_id", "dirty", "tagGuids", "deleted"]]] + [0, 0]
+        field_list = [field for field in [f["field_name"] for f in DB_STRUCTURE[element_type] if not f["no_download"]] if field not in ["tagGuids"]] + ["dirty", "deleted"]
+        values_list = [getattr(element, a) for a in [field for field in [f["field_name"] for f in DB_STRUCTURE[element_type] if not f["no_download"]] if field not in ["tagGuids"]]] + [0, 0]
         
         if element_type == "notes":
             field_list += ["tagGuids"]
@@ -171,9 +171,9 @@ class FeverAccountDB(object):
             logging.fatal("Unknown element type %s" % element_type)
             return
         
-        field_list = [field for field in [f["field_name"] for f in DB_STRUCTURE[element_type]] if field not in ["local_id", "dirty", "tagGuids", "deleted", "content"]] + ["dirty", "deleted"]
+        field_list = [field for field in [f["field_name"] for f in DB_STRUCTURE[element_type] if not f["no_download"]] if field not in ["tagGuids", "content"]] + ["dirty", "deleted"]
         query_match_array = []
-        values_list = [getattr(element, a) for a in [field for field in [f["field_name"] for f in DB_STRUCTURE[element_type]] if field not in ["local_id", "dirty", "tagGuids", "deleted", "content"]]] + [0, 0]
+        values_list = [getattr(element, a) for a in [field for field in [f["field_name"] for f in DB_STRUCTURE[element_type] if not f["no_download"]] if field not in ["tagGuids", "content"]]] + [0, 0]
         
         if element_type == "notes":
             field_list += ["tagGuids"]
