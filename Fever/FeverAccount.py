@@ -449,7 +449,7 @@ class FeverAccount(EventsObject):
                             updateSequenceNum = noteStore.updateNotebook(server_element)
                             new_server_element = noteStore.getNotebook(client_element["guid"])
                         elif element_type == "notes":
-                            new_server_element = noteStore.updateNote(server_element).updateSequenceNum
+                            new_server_element = noteStore.updateNote(server_element)
                             updateSequenceNum = new_server_element.updateSequenceNum
                         if updateSequenceNum == self.lastUpdateCount + 1:
                             self.lastUpdateCount = updateSequenceNum
