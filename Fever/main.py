@@ -172,11 +172,29 @@ class Application(object):
             
         tags_list = self._account.list_tags()
         tags_list.sort(lambda a,b: cmp(a["name"].lower(), b["name"].lower()))
-        self._window.send_command("update_tags_list(%s)" % json.dumps(tags_list))
+        client_tags_list = []
+        for tag in tags_list:
+            client_tags_list.append({"label": tag["name"]})
+        self._window.send_command("update_tags_list(%s)" % json.dumps(client_tags_list))
             
-        notebooks_list = self._account.list_notebooks() 
-        notebooks_list.sort(lambda a,b: cmp(a["name"].lower(), b["name"].lower()))
-        self._window.send_command("update_notebooks_list(%s)" % json.dumps(notebooks_list))
+        notebooks_list = self._account.list_notebooks()
+        stacks = {}
+        stackless_notebooks = []
+        for notebook in notebooks_list:
+            if notebook["stack"]:
+                if not notebook["stack"] in stacks:
+                    stacks[notebook["stack"]] = []
+                stacks[notebook["stack"]].append(notebook)
+            else:
+                stackless_notebooks.append(notebook)
+        client_notebooks_list = []
+        for stack in stacks:
+            stacks[stack].sort(lambda a,b: cmp(a["name"].lower(), b["name"].lower()))
+            client_notebooks_list.append({"label": stack, "children": [{"label": n["name"]} for n in stacks[stack]]})
+        for notebook in stackless_notebooks:
+            client_notebooks_list.append({"label": notebook["name"]})
+        client_notebooks_list.sort(lambda a,b: cmp(a["label"].lower(), b["label"].lower()))
+        self._window.send_command("update_notebooks_list(%s)" % json.dumps(client_notebooks_list))
         
         notes_list = []
         for note in self._account.list_notes():

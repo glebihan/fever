@@ -33,19 +33,11 @@ function update_notes_list(notes_list){
 }
 
 function update_tags_list(tags_list){
-    var new_tags_list = new Array();
-    for (var i in tags_list){
-        new_tags_list.push({label: tags_list[i].name})
-    }
-    jQuery("#tagslist").tree("loadData", new_tags_list);
+    jQuery("#tagslist").tree("loadData", tags_list);
 }
 
 function update_notebooks_list(notebooks_list){
-    var new_notebooks_list = new Array();
-    for (var i in notebooks_list){
-        new_notebooks_list.push({label: notebooks_list[i].name})
-    }
-    jQuery("#notebookslist").tree("loadData", new_notebooks_list);
+    jQuery("#notebookslist").tree("loadData", notebooks_list);
 }
 
 function update_editor_height(){
@@ -56,36 +48,13 @@ function update_noteslist_height(){
     jQuery("#noteslist").css("height", (jQuery("#noteslist_wrapper").height() - jQuery("#noteslist").offset().top) + "px");
 }
 
-var notebookslist = [
-    {
-        label: "test 1"
-    },
-    {
-        label: "test 2",
-        children: [
-            {
-                label: "test 3"
-            }
-        ]
-    },
-    {
-        label: "test 4"
-    }
-];
-var tagslist = [
-    {
-        label: "test 1"
-    },
-    {
-        label: "test 2"
-    }
-];
+
 jQuery(document).ready(function(){
     jQuery("#notebookslist").tree({
-        data: notebookslist
+        data: []
     });
     jQuery("#tagslist").tree({
-        data: tagslist
+        data: []
     });
     jQuery("#leftbar").resizable({
         handles: "e",

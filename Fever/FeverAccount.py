@@ -20,7 +20,7 @@ from evernote.edam.type import ttypes as EvernoteTypes
 ELEMENTS_TYPES = ["tags", "notebooks", "resources", "notes"]
 ELEMENTS_FIELDS = {
     "tags": ["local_id", "guid", "name", "parentGuid", "updateSequenceNum", "dirty", "deleted"],
-    "notebooks": ["local_id", "guid", "name", "updateSequenceNum", "defaultNotebook", "dirty", "deleted"],
+    "notebooks": ["local_id", "guid", "name", "updateSequenceNum", "defaultNotebook", "stack", "dirty", "deleted"],
     "resources": ["local_id", "guid", "noteGuid", "data", "bodyHash", "mime", "width", "height", "updateSequenceNum", "dirty", "deleted"],
     "notes": ["local_id", "guid", "title", "content", "contentHash", "contentLength", "active", "updateSequenceNum", "notebookGuid", "tagGuids", "dirty", "deleted"]
 }
@@ -67,7 +67,7 @@ class FeverAccountDB(object):
     def _check_db_structure(self):
         self._query("CREATE TABLE IF NOT EXISTS global_data (`key` TEXT, `value` TEXT)")
         self._query("CREATE TABLE IF NOT EXISTS tags (`local_id` INTEGER PRIMARY KEY, `guid` TEXT, name TEXT, parentGuid TEXT, updateSequenceNum NUMERIC, dirty NUMERIC DEFAULT 0, deleted NUMERIC DEFAULT 0)")
-        self._query("CREATE TABLE IF NOT EXISTS notebooks (`local_id` INTEGER PRIMARY KEY, `guid` TEXT, name TEXT, updateSequenceNum NUMERIC, defaultNotebook NUMERIC DEFAULT 0, dirty NUMERIC DEFAULT 0, deleted NUMERIC DEFAULT 0)")
+        self._query("CREATE TABLE IF NOT EXISTS notebooks (`local_id` INTEGER PRIMARY KEY, `guid` TEXT, name TEXT, updateSequenceNum NUMERIC, defaultNotebook NUMERIC DEFAULT 0, stack TEXT, dirty NUMERIC DEFAULT 0, deleted NUMERIC DEFAULT 0)")
         self._query("CREATE TABLE IF NOT EXISTS resources (`local_id` INTEGER PRIMARY KEY, `guid` TEXT, noteGuid TEXT, data TEXT, bodyHash TEXT, mime TEXT, width NUMERIC, height NUMERIC, updateSequenceNum NUMERIC, dirty NUMERIC DEFAULT 0, deleted NUMERIC DEFAULT 0)")
         self._query("CREATE TABLE IF NOT EXISTS notes (`local_id` INTEGER PRIMARY KEY, `guid` TEXT, title TEXT, content TEXT, contentHash TEXT, contentLength NUMERIC, active NUMERIC DEFAULT 1, updateSequenceNum NUMERIC, notebookGuid TEXT, tagGuids TEXT, dirty NUMERIC DEFAULT 0, deleted NUMERIC DEFAULT 0)")
     
