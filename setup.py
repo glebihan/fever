@@ -59,15 +59,15 @@ os.system("cp -R tinymce/js/tinymce share/fever")
 
 # build jquery
 os.chdir("jquery")
-os.system("npm install")
-os.system("grunt concat")
+os.system("npm run build")
 os.chdir("..")
 os.system("mkdir -p share/fever/jquery-ui")
 os.system("cp jquery/dist/jquery.min.js share/fever/jquery")
 
 # build jquery-ui
 os.chdir("jquery-ui")
-os.system("npm run build")
+os.system("npm install")
+os.system("grunt concat")
 os.chdir("..")
 os.system("mkdir -p share/fever/jquery")
 os.system("cp -R jquery-ui/dist/* share/fever/jquery-ui")
