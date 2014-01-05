@@ -437,15 +437,22 @@ class FeverAccount(EventsObject):
                 for server_element, client_element in elements_to_upload[element_type]:
                     if client_element["updateSequenceNum"]:
                         for field in [f["field_name"] for f in DB_STRUCTURE[element_type] if f["no_upload"] == False]:
-                            setattr(server_element, field, client_element[field])
+                            if field in ["parentGuid"] and client_element[field] == "":
+                                value = None
+                            else:
+                                value = client_element[field]
+                            setattr(server_element, field, value)
                         if element_type == "tags":
-                            new_server_element = noteStore.updateTag(server_element)
+                            updateSequenceNum = noteStore.updateTag(server_element)
+                            new_server_element = noteStore.getTag(client_element["guid"])
                         elif element_type == "notebooks":
-                            new_server_element = noteStore.updateNotebook(server_element)
+                            updateSequenceNum = noteStore.updateNotebook(server_element)
+                            new_server_element = noteStore.getNotebook(client_element["guid"])
                         elif element_type == "notes":
-                            new_server_element = noteStore.updateNote(server_element)
-                        if new_server_element.updateSequenceNum == self.lastUpdateCount + 1:
-                            self.lastUpdateCount = new_server_element.updateSequenceNum
+                            new_server_element = noteStore.updateNote(server_element).updateSequenceNum
+                            updateSequenceNum = new_server_element.updateSequenceNum
+                        if updateSequenceNum == self.lastUpdateCount + 1:
+                            self.lastUpdateCount = updateSequenceNum
                         else:
                             need_incremental_sync = True
                         self._account_data_db.update_element_from_server(element_type, client_element["local_id"], new_server_element)
