@@ -3,6 +3,7 @@
 
 from EventsObject import EventsObject
 from ThreadedTask import ThreadedTask
+from db_structure import DB_STRUCTURE
 import os
 import sys
 import logging
@@ -18,18 +19,6 @@ from evernote.edam.notestore import NoteStore
 from evernote.edam.type import ttypes as EvernoteTypes
 
 ELEMENTS_TYPES = ["tags", "notebooks", "resources", "notes"]
-ELEMENTS_FIELDS = {
-    "tags": ["local_id", "guid", "name", "parentGuid", "updateSequenceNum", "dirty", "deleted"],
-    "notebooks": ["local_id", "guid", "name", "updateSequenceNum", "defaultNotebook", "stack", "dirty", "deleted"],
-    "resources": ["local_id", "guid", "noteGuid", "data", "bodyHash", "mime", "width", "height", "updateSequenceNum", "dirty", "deleted"],
-    "notes": ["local_id", "guid", "title", "content", "contentHash", "contentLength", "active", "updateSequenceNum", "notebookGuid", "tagGuids", "dirty", "deleted"]
-}
-ELEMENTS_UPLOAD_FIELDS = {
-    "tags": ["name"],
-    "notebooks": ["name"],
-    "resources": ["noteGuid", "data", "mime", "width", "height"],
-    "notes": ["title", "content", "active", "notebookGuid", "tagGuids"]
-}
 
 class FeverAccountDB(object):
     def __init__(self, db_file):
@@ -65,11 +54,8 @@ class FeverAccountDB(object):
         return True
     
     def _check_db_structure(self):
-        self._query("CREATE TABLE IF NOT EXISTS global_data (`key` TEXT, `value` TEXT)")
-        self._query("CREATE TABLE IF NOT EXISTS tags (`local_id` INTEGER PRIMARY KEY, `guid` TEXT, name TEXT, parentGuid TEXT, updateSequenceNum NUMERIC, dirty NUMERIC DEFAULT 0, deleted NUMERIC DEFAULT 0)")
-        self._query("CREATE TABLE IF NOT EXISTS notebooks (`local_id` INTEGER PRIMARY KEY, `guid` TEXT, name TEXT, updateSequenceNum NUMERIC, defaultNotebook NUMERIC DEFAULT 0, stack TEXT, dirty NUMERIC DEFAULT 0, deleted NUMERIC DEFAULT 0)")
-        self._query("CREATE TABLE IF NOT EXISTS resources (`local_id` INTEGER PRIMARY KEY, `guid` TEXT, noteGuid TEXT, data TEXT, bodyHash TEXT, mime TEXT, width NUMERIC, height NUMERIC, updateSequenceNum NUMERIC, dirty NUMERIC DEFAULT 0, deleted NUMERIC DEFAULT 0)")
-        self._query("CREATE TABLE IF NOT EXISTS notes (`local_id` INTEGER PRIMARY KEY, `guid` TEXT, title TEXT, content TEXT, contentHash TEXT, contentLength NUMERIC, active NUMERIC DEFAULT 1, updateSequenceNum NUMERIC, notebookGuid TEXT, tagGuids TEXT, dirty NUMERIC DEFAULT 0, deleted NUMERIC DEFAULT 0)")
+        for table_name in DB_STRUCTURE:
+            self._query("CREATE TABLE IF NOT EXISTS `" + table_name + "` (" + ", ".join(["`" + field["field_name"] + "` " + field["type"] for field in DB_STRUCTURE[table_name]]) + ")")
     
     def _push_query(self, sql, params, condition):
         self._query_lock.acquire()
@@ -132,8 +118,8 @@ class FeverAccountDB(object):
             return
         
         res = {}
-        for i in range(len(ELEMENTS_FIELDS[element_type])):
-            res[ELEMENTS_FIELDS[element_type][i]] = element[i]
+        for i in range(len(DB_STRUCTURE[element_type])):
+            res[DB_STRUCTURE[element_type][i]["field_name"]] = element[i]
         return res
     
     def lookup_element_by_guid(self, element_type, guid):
@@ -143,7 +129,7 @@ class FeverAccountDB(object):
             logging.fatal("Unknown element type %s" % element_type)
             return
         
-        res = self._query("SELECT `" + "`, `".join(ELEMENTS_FIELDS[element_type]) + "` FROM " + element_type + " WHERE guid=?", (guid,))
+        res = self._query("SELECT `" + "`, `".join([f["field_name"] for f in DB_STRUCTURE[element_type]]) + "` FROM " + element_type + " WHERE guid=?", (guid,))
         if len(res) == 1:
             return self._format_element(element_type, res[0])
     
@@ -154,7 +140,7 @@ class FeverAccountDB(object):
             logging.fatal("Unknown element type %s" % element_type)
             return
         
-        res = self._query("SELECT " + "`" + "`, `".join(ELEMENTS_FIELDS[element_type]) + "`" + " FROM " + element_type + " WHERE name=?", (name,))
+        res = self._query("SELECT " + "`" + "`, `".join([f["field_name"] for f in DB_STRUCTURE[element_type]]) + "`" + " FROM " + element_type + " WHERE name=?", (name,))
         if len(res) == 1:
             return self._format_element(element_type, res[0])
     
@@ -165,8 +151,8 @@ class FeverAccountDB(object):
             logging.fatal("Unknown element type %s" % element_type)
             return
             
-        field_list = [field for field in ELEMENTS_FIELDS[element_type] if field not in ["local_id", "dirty", "tagGuids", "deleted"]] + ["dirty", "deleted"]
-        values_list = [getattr(element, a) for a in [field for field in ELEMENTS_FIELDS[element_type] if field not in ["local_id", "dirty", "tagGuids", "deleted"]]] + [0, 0]
+        field_list = [field for field in [f["field_name"] for f in DB_STRUCTURE[element_type]] if field not in ["local_id", "dirty", "tagGuids", "deleted"]] + ["dirty", "deleted"]
+        values_list = [getattr(element, a) for a in [field for field in [f["field_name"] for f in DB_STRUCTURE[element_type]] if field not in ["local_id", "dirty", "tagGuids", "deleted"]]] + [0, 0]
         
         if element_type == "notes":
             field_list += ["tagGuids"]
@@ -185,9 +171,9 @@ class FeverAccountDB(object):
             logging.fatal("Unknown element type %s" % element_type)
             return
         
-        field_list = [field for field in ELEMENTS_FIELDS[element_type] if field not in ["local_id", "dirty", "tagGuids", "deleted", "content"]] + ["dirty", "deleted"]
+        field_list = [field for field in [f["field_name"] for f in DB_STRUCTURE[element_type]] if field not in ["local_id", "dirty", "tagGuids", "deleted", "content"]] + ["dirty", "deleted"]
         query_match_array = []
-        values_list = [getattr(element, a) for a in [field for field in ELEMENTS_FIELDS[element_type] if field not in ["local_id", "dirty", "tagGuids", "deleted", "content"]]] + [0, 0]
+        values_list = [getattr(element, a) for a in [field for field in [f["field_name"] for f in DB_STRUCTURE[element_type]] if field not in ["local_id", "dirty", "tagGuids", "deleted", "content"]]] + [0, 0]
         
         if element_type == "notes":
             field_list += ["tagGuids"]
@@ -211,7 +197,7 @@ class FeverAccountDB(object):
             logging.fatal("Unknown element type %s" % element_type)
             return
             
-        elements = self._query("SELECT `" + "`, `".join(ELEMENTS_FIELDS[element_type]) + "` FROM " + element_type)
+        elements = self._query("SELECT `" + "`, `".join([f["field_name"] for f in DB_STRUCTURE[element_type]]) + "` FROM " + element_type)
         res = []
         for element in elements:
             res.append(self._format_element(element_type, element))
@@ -242,7 +228,7 @@ class FeverAccountDB(object):
             logging.fatal("Unknown element type %s" % element_type)
             return
         
-        return self._format_element(element_type, self._query("SELECT `" + "`, `".join(ELEMENTS_FIELDS[element_type]) + "` FROM " + element_type + " WHERE local_id=?", (local_id,))[0])
+        return self._format_element(element_type, self._query("SELECT `" + "`, `".join([f["field_name"] for f in DB_STRUCTURE[element_type]]) + "` FROM " + element_type + " WHERE local_id=?", (local_id,))[0])
     
     def get_element_by_hash(self, element_type, element_hash):
         logging.debug("get_element_by_hash %s %s" % (element_type, element_hash))
@@ -251,7 +237,7 @@ class FeverAccountDB(object):
             logging.fatal("Unknown element type %s" % element_type)
             return
         
-        return self._format_element(element_type, self._query("SELECT `" + "`, `".join(ELEMENTS_FIELDS[element_type]) + "` FROM " + element_type + " WHERE bodyHash=?", (element_hash,))[0])
+        return self._format_element(element_type, self._query("SELECT `" + "`, `".join([f["field_name"] for f in DB_STRUCTURE[element_type]]) + "` FROM " + element_type + " WHERE bodyHash=?", (element_hash,))[0])
     
     def update_element_field(self, element_type, field, local_id, value):
         logging.debug("update_element_field %s %s %d %s" % (element_type, field, local_id, value))
@@ -450,7 +436,7 @@ class FeverAccount(EventsObject):
             for element_type in ELEMENTS_TYPES:
                 for server_element, client_element in elements_to_upload[element_type]:
                     if client_element["updateSequenceNum"]:
-                        for field in ELEMENTS_UPLOAD_FIELDS[element_type]:
+                        for field in [f["field_name"] for f in DB_STRUCTURE[element_type] if f["no_upload"] == False]:
                             setattr(server_element, field, client_element[field])
                         if element_type == "tags":
                             new_server_element = noteStore.updateTag(server_element)
