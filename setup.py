@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- Mode: Python; indent-tabs-mode: nil; tab-width: 4; coding: utf-8 -*-
 #
-# Copyright © 2013 Gwendal Le Bihan
+# Copyright © 2013-2014 Gwendal Le Bihan
 # 
 # This file is part of Fever.
 # 

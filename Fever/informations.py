@@ -1,7 +1,7 @@
 # informations.py
 # -*- Mode: Python; indent-tabs-mode: nil; tab-width: 4; coding: utf-8 -*-
 #
-# Copyright © 2013 Gwendal Le Bihan
+# Copyright © 2013-2014 Gwendal Le Bihan
 # 
 # This file is part of Fever.
 # 
@@ -37,4 +37,4 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with Fever.  If not, see <http://www.gnu.org/licenses/>."""
-COPYRIGHT_NOTICE = "Copyright (C) 2013 Gwendal Le Bihan"
+COPYRIGHT_NOTICE = "Copyright © 2013-2014 Gwendal Le Bihan"

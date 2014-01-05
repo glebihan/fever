@@ -5,17 +5,22 @@
   <object class="GtkAccelGroup" id="accelgroup1"/>
   <object class="GtkActionGroup" id="actiongroup1">
     <child>
-      <object class="GtkAction" id="sync_action">
-        <property name="label" translatable="yes">Synchonise</property>
-        <property name="stock_id">gtk-refresh</property>
+      <object class="GtkAction" id="about_action">
+        <property name="stock_id">gtk-about</property>
       </object>
-      <accelerator key="F5"/>
     </child>
     <child>
       <object class="GtkAction" id="quit_action">
         <property name="stock_id">gtk-quit</property>
       </object>
       <accelerator key="q" modifiers="GDK_CONTROL_MASK"/>
+    </child>
+    <child>
+      <object class="GtkAction" id="sync_action">
+        <property name="label" translatable="yes">Synchonise</property>
+        <property name="stock_id">gtk-refresh</property>
+      </object>
+      <accelerator key="F5"/>
     </child>
   </object>
   <object class="GtkWindow" id="main_window">
@@ -110,11 +115,9 @@
                     <property name="can_focus">False</property>
                     <child>
                       <object class="GtkImageMenuItem" id="imagemenuitem10">
-                        <property name="label">gtk-about</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="use_action_appearance">False</property>
-                        <property name="use_underline">True</property>
+                        <property name="related_action">about_action</property>
                         <property name="use_stock">True</property>
                       </object>
                     </child>

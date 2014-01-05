@@ -14,6 +14,7 @@ import urlparse
 import htmlentitydefs
 import logging
 import json
+import AboutDialog
 
 from FeverAccount import FeverAccount
 from HTMLNode import HTMLNode
@@ -47,8 +48,11 @@ class Application(object):
         self._window.connect("delete_event", self._on_window_delete_event)
         builder.get_object("quit_action").connect("activate", self._on_quit_clicked)
         builder.get_object("sync_action").connect("activate", self._on_sync_clicked)
+        builder.get_object("about_action").connect("activate", self._on_about_clicked)
         
         self._window.maximize()
+        
+        self._about_dialog = AboutDialog.AboutDialog(self._window)
     
     def _on_webview_load_finished(self, webview, frame):
         if frame == webview.get_main_frame():
@@ -134,6 +138,9 @@ class Application(object):
         
     def _on_quit_clicked(self, menuitem):
         self._check_quit()
+    
+    def _on_about_clicked(self, menuitem):
+        self._about_dialog.run()
     
     def _on_account_need_token(self, account):
         f = open(os.path.join(os.path.split(sys.argv[0])[0], "evernote_dev_token"))
