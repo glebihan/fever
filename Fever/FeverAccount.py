@@ -122,6 +122,17 @@ class FeverAccountDB(object):
             res[DB_STRUCTURE[element_type][i]["field_name"]] = element[i]
         return res
     
+    def lookup_element_by_local_id(self, element_type, local_id):
+        logging.debug("lookup_element_by_local_id %s %d" % (element_type, local_id))
+        
+        if not element_type in ELEMENTS_TYPES:
+            logging.fatal("Unknown element type %s" % element_type)
+            return
+        
+        res = self._query("SELECT `" + "`, `".join([f["field_name"] for f in DB_STRUCTURE[element_type]]) + "` FROM " + element_type + " WHERE local_id=?", (local_id,))
+        if len(res) == 1:
+            return self._format_element(element_type, res[0])
+    
     def lookup_element_by_guid(self, element_type, guid):
         logging.debug("lookup_element_by_guid %s %s" % (element_type, guid))
         
@@ -381,8 +392,10 @@ class FeverAccount(EventsObject):
                             else:
                                 elements_to_upload[element_type].append((server_element, client_element))
                         elif server_element.updateSequenceNum > client_element["updateSequenceNum"] and not client_element["dirty"]:
-                            if element_type == "notes" and server_element.contentHash != client_element["contentHash"]:
-                                server_element.content = noteStore.getNoteContent(server_element.guid)
+                            if element_type == "notes":
+                                if server_element.contentHash != client_element["contentHash"]:
+                                    server_element.content = noteStore.getNoteContent(server_element.guid)
+                                server_element.notebook_local_id = self._account_data_db.lookup_element_by_guid("notebooks", server_element.notebookGuid)["local_id"]
                             elif element_type == "resources":
                                 server_element.bodyHash = binascii.b2a_hex(server_element.data.bodyHash)
                                 if server_element.data.bodyHash != binascii.b2a_hex(server_element.data.bodyHash):
@@ -413,6 +426,7 @@ class FeverAccount(EventsObject):
                         else:
                             if element_type == "notes":
                                 server_element.content = noteStore.getNoteContent(server_element.guid)
+                                server_element.notebook_local_id = self._account_data_db.lookup_element_by_guid("notebooks", server_element.notebookGuid)["local_id"]
                             elif element_type == "resources":
                                 server_element.bodyHash = binascii.b2a_hex(server_element.data.bodyHash)
                                 server_element.data = noteStore.getResourceData(server_element.guid)
@@ -437,6 +451,9 @@ class FeverAccount(EventsObject):
                 for server_element, client_element in elements_to_upload[element_type]:
                     if client_element["updateSequenceNum"]:
                         for field in [f["field_name"] for f in DB_STRUCTURE[element_type] if f["no_upload"] == False]:
+                            if element_type == "notes" and client_element["notebookGuid"] == "":
+                                # Note was moved to a different notebook
+                                client_element["notebookGuid"] = self._account_data_db.lookup_element_by_local_id("notebooks", client_element["notebook_local_id"])["guid"]
                             if field in ["parentGuid"] and client_element[field] == "":
                                 value = None
                             else:
@@ -449,8 +466,10 @@ class FeverAccount(EventsObject):
                             updateSequenceNum = noteStore.updateNotebook(server_element)
                             new_server_element = noteStore.getNotebook(client_element["guid"])
                         elif element_type == "notes":
+                            server_element.notebookGuid
                             new_server_element = noteStore.updateNote(server_element)
                             updateSequenceNum = new_server_element.updateSequenceNum
+                            new_server_element.notebook_local_id = client_element["notebook_local_id"]
                         if updateSequenceNum == self.lastUpdateCount + 1:
                             self.lastUpdateCount = updateSequenceNum
                         else:
@@ -463,7 +482,13 @@ class FeverAccount(EventsObject):
                             server_element = noteStore.createNotebook(EvernoteTypes.Notebook(name = client_element["name"]))
                         elif element_type == "notes":
                             server_element = noteStore.createNote(EvernoteTypes.Note(title = client_element["title"]))
+                            server_element.notebook_local_id = client_element["notebook_local_id"]
                         self._account_data_db.update_element_from_server(element_type, client_element["local_id"], server_element)
+            
+            if need_incremental_sync:
+                logging.debug("need_incremental_sync")
+                self._do_sync()
+                    
         except:
             logging.error(sys.exc_info())
     
