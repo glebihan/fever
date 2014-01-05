@@ -3,6 +3,7 @@ evernote_dev_token
 share/fever/tinymce
 share/fever/jquery
 share/fever/jquery-ui
+share/fever/jqTree
 Fever/evernote
 Fever/thrift
 build

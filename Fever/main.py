@@ -21,49 +21,6 @@ from HTMLNode import HTMLNode
 from evernote.api.client import EvernoteClient
 from evernote.edam.type import ttypes as Types
 
-class FeverWindow(gtk.Window):
-    def __init__(self, app):
-        gtk.Window.__init__(self)
-        self._app = app
-        
-        vbox = gtk.VBox()
-        self.add(vbox)
-        
-        self._webview = webkit.WebView()
-        vbox.pack_start(self._webview)
-        self._webview.get_settings().set_property('enable-file-access-from-file-uris', 1)
-        
-        self._load_finished = False
-        self._pending_commands = []
-        self._webview.connect("load-finished", self._on_load_finished)
-        self._webview.connect("script-alert", self._on_script_alert)
-        
-        self._webview.load_uri(urlparse.urljoin('file:', urllib.pathname2url(os.path.join(self._app.cli_options.share_dir, "fever", "ui", "main_window.html"))))
-        
-        self.set_size_request(800, 600)
-        self.maximize()
-    
-    def _on_script_alert(self, editor, frame, message):
-        self._app.handle_client_command(message)
-        return True
-    
-    def send_command(self, command):
-        if self._load_finished:
-            self._do_send_command(command)
-        else:
-            self._pending_commands.append(command)
-    
-    def _do_send_command(self, command):
-        self._webview.execute_script(command)
-    
-    def _on_load_finished(self, webview, frame):
-        if frame == webview.get_main_frame():
-            while len(self._pending_commands):
-                command = self._pending_commands[0]
-                del self._pending_commands[0]
-                self._do_send_command(command)
-            self._load_finished = True
-
 class Application(object):
     def __init__(self, cli_options):
         self.cli_options = cli_options
@@ -72,10 +29,45 @@ class Application(object):
         self._account = None
         self._is_quitting = False
         
-        self._window = FeverWindow(self)
+        builder = gtk.Builder()
+        builder.add_from_file(os.path.join(self.cli_options.share_dir, "fever", "ui", "ui.glade"))
+        self._window = builder.get_object("main_window")
+        
+        self._webview = webkit.WebView()
+        builder.get_object("webview_container").add(self._webview)
+        self._webview.get_settings().set_property('enable-file-access-from-file-uris', 1)
+        
+        self._webview_load_finished = False
+        self._webview_pending_commands = []
+        self._webview.connect("load-finished", self._on_webview_load_finished)
+        self._webview.connect("script-alert", self._on_webview_script_alert)
+        
+        self._webview.load_uri(urlparse.urljoin('file:', urllib.pathname2url(os.path.join(self.cli_options.share_dir, "fever", "ui", "main_window.html"))))
+
         self._window.connect("delete_event", self._on_window_delete_event)
+        builder.get_object("quit_action").connect("activate", self._on_quit_clicked)
+        builder.get_object("sync_action").connect("activate", self._on_sync_clicked)
+        
+        self._window.maximize()
     
-    def handle_client_command(self, message):
+    def _on_webview_load_finished(self, webview, frame):
+        if frame == webview.get_main_frame():
+            while len(self._webview_pending_commands):
+                command = self._webview_pending_commands[0]
+                del self._webview_pending_commands[0]
+                self._do_send_command(command)
+            self._webview_load_finished = True
+    
+    def _do_send_command(self, command):
+        self._webview.execute_script(command)
+    
+    def send_command(self, command):
+        if self._webview_load_finished:
+            self._do_send_command(command)
+        else:
+            self._webview_pending_commands.append(command)
+    
+    def _on_webview_script_alert(self, editor, frame, message):
         i = message.index(":")
         command = message[:i]
         params = message[i+1:]
@@ -93,6 +85,8 @@ class Application(object):
         elif command == "edit_note":
             note_local_id = int(params)
             self.edit_note(note_local_id)
+            
+        return True
     
     def edit_note(self, note_local_id):
         note = self._account.get_note(note_local_id)
@@ -109,7 +103,7 @@ class Application(object):
             "title": self._htmlentities_encode(note['title']),
             "contents": str(document)
         }
-        self._window.send_command("set_editing_note(%s)" % json.dumps(note_data))
+        self.send_command("set_editing_note(%s)" % json.dumps(note_data))
     
     def _htmlentities_encode(self, string):
         res = ""
@@ -165,7 +159,7 @@ class Application(object):
             self._refresh_display()
         
     def _refresh_display(self):
-        self._window.send_command("clear_all()")
+        self.send_command("clear_all()")
         
         if not self._account:
             return
@@ -175,7 +169,7 @@ class Application(object):
         client_tags_list = []
         for tag in tags_list:
             client_tags_list.append({"label": tag["name"]})
-        self._window.send_command("update_tags_list(%s)" % json.dumps(client_tags_list))
+        self.send_command("update_tags_list(%s)" % json.dumps(client_tags_list))
             
         notebooks_list = self._account.list_notebooks()
         stacks = {}
@@ -194,7 +188,7 @@ class Application(object):
         for notebook in stackless_notebooks:
             client_notebooks_list.append({"label": notebook["name"]})
         client_notebooks_list.sort(lambda a,b: cmp(a["label"].lower(), b["label"].lower()))
-        self._window.send_command("update_notebooks_list(%s)" % json.dumps(client_notebooks_list))
+        self.send_command("update_notebooks_list(%s)" % json.dumps(client_notebooks_list))
         
         notes_list = []
         for note in self._account.list_notes():
@@ -202,7 +196,7 @@ class Application(object):
                 "local_id": note["local_id"],
                 "title": self._htmlentities_encode(note['title'])
             })
-        self._window.send_command("update_notes_list(%s)" % json.dumps(notes_list))
+        self.send_command("update_notes_list(%s)" % json.dumps(notes_list))
     
     def _on_account_authentication_success(self, account):
         account.sync()
