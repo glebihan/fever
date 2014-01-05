@@ -32,6 +32,9 @@
         </div>
         
         <div id="noteeditor_wrapper">
+            <div id="noteeditor_toolbar">
+                <label for="note_notebook_selector">Notebook : </label><select id="note_notebook_selector" onchange="update_note_notebook(this.value);"></select>
+            </div>
             <div id="noteeditor_inside_wrapper">
                 <div id="noteeditor">
                     <input type='text' id='note_title' value='' style=''/>

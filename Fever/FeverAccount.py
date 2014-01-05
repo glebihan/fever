@@ -285,6 +285,10 @@ class FeverAccount(EventsObject):
     def update_note_title(self, note_local_id, title):
         self._account_data_db.update_element_field("notes", "title", note_local_id, title)
     
+    def update_note_notebook(self, note_local_id, notebook_local_id):
+        self._account_data_db.update_element_field("notes", "notebook_local_id", note_local_id, notebook_local_id)
+        self._account_data_db.update_element_field("notes", "notebookGuid", note_local_id, "")
+    
     def get_resource_by_hash(self, resource_hash):
         return self._account_data_db.get_element_by_hash("resources", resource_hash)
     

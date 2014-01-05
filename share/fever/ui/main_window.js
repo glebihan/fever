@@ -1,10 +1,12 @@
 var editing_note_local_id = null;
+var editing_note_notebook_local_id = null;
 
 function clear_all(){
 }
 
 function edit_note(local_id){
     editing_note_local_id = null;
+    editing_note_notebook_local_id = null;
     tinymce.get("tinymcecontainer").setContent("");
     jQuery("#note_title").val("")
     
@@ -16,6 +18,9 @@ function set_editing_note(note_data){
     tinymce.get("tinymcecontainer").setContent(note_data.contents);
     
     editing_note_local_id = note_data.local_id;
+    editing_note_notebook_local_id = note_data.notebook_local_id;
+    jQuery("#note_notebook_selector").val(note_data.notebook_local_id);
+    jQuery("#noteeditor_wrapper").toggle(true);
 }
 
 function update_notes_list(notes_list){
@@ -32,12 +37,27 @@ function update_notes_list(notes_list){
     }
 }
 
+function update_note_notebook(notebook_local_id){
+    if (editing_note_local_id){
+        alert("set_note_notebook:" + editing_note_local_id + ":" + notebook_local_id);
+        editing_note_notebook_local_id = notebook_local_id;
+    }
+}
+
 function update_tags_list(tags_list){
     jQuery("#tagslist").tree("loadData", tags_list);
 }
 
 function update_notebooks_list(notebooks_list){
     jQuery("#notebookslist").tree("loadData", notebooks_list);
+}
+
+function update_note_notebook_selector(notebooks_list){
+    jQuery("#note_notebook_selector").html("");
+    for (var i in notebooks_list){
+        jQuery("<option value='" + notebooks_list[i].local_id + "'>" + notebooks_list[i].label + "</option>").appendTo("#note_notebook_selector");
+    }
+    jQuery("#note_notebook_selector").val(editing_note_notebook_local_id);
 }
 
 function update_editor_height(){

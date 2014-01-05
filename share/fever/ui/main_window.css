@@ -42,6 +42,7 @@
 }
 
 #noteeditor_wrapper{
+    display: none;
     background-color: #EAEDEF;
     border: #B3B3B3 solid 1px;
     position: absolute;
