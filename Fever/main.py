@@ -12,6 +12,8 @@ import binascii
 import urllib
 import urlparse
 import htmlentitydefs
+import logging
+import json
 
 from FeverAccount import FeverAccount
 from HTMLNode import HTMLNode
@@ -19,49 +21,61 @@ from HTMLNode import HTMLNode
 from evernote.api.client import EvernoteClient
 from evernote.edam.type import ttypes as Types
 
-class NoteEditor(webkit.WebView):
-    def __init__(self, application):
-        webkit.WebView.__init__(self)
-        settings = self.get_settings()
-        settings.set_property('enable-file-access-from-file-uris', 1)
-
 class FeverWindow(gtk.Window):
     def __init__(self, app):
         gtk.Window.__init__(self)
         self._app = app
         
+        vbox = gtk.VBox()
+        self.add(vbox)
+        
+        self._webview = webkit.WebView()
+        vbox.pack_start(self._webview)
+        self._webview.get_settings().set_property('enable-file-access-from-file-uris', 1)
+        
+        self._load_finished = False
+        self._pending_commands = []
+        self._webview.connect("load-finished", self._on_load_finished)
+        self._webview.connect("script-alert", self._on_script_alert)
+        
+        self._webview.load_uri(urlparse.urljoin('file:', urllib.pathname2url(os.path.join(self._app.cli_options.share_dir, "fever", "ui", "main_window.html"))))
+        
         self.set_size_request(800, 600)
         self.maximize()
+    
+    def _on_script_alert(self, editor, frame, message):
+        self._app.handle_client_command(message)
+        return True
+    
+    def send_command(self, command):
+        if self._load_finished:
+            self._do_send_command(command)
+        else:
+            self._pending_commands.append(command)
+    
+    def _do_send_command(self, command):
+        self._webview.execute_script(command)
+    
+    def _on_load_finished(self, webview, frame):
+        if frame == webview.get_main_frame():
+            while len(self._pending_commands):
+                command = self._pending_commands[0]
+                del self._pending_commands[0]
+                self._do_send_command(command)
+            self._load_finished = True
 
 class Application(object):
     def __init__(self, cli_options):
-        self._cli_options = cli_options
-        self._cli_options.share_dir = os.path.abspath(self._cli_options.share_dir)
+        self.cli_options = cli_options
+        self.cli_options.share_dir = os.path.abspath(self.cli_options.share_dir)
         
         self._account = None
         self._is_quitting = False
         
-        builder = gtk.Builder()
-        builder.add_from_file(os.path.join(cli_options.share_dir, "fever", "ui", "main.glade"))
-        self._window = builder.get_object("main_window")
+        self._window = FeverWindow(self)
         self._window.connect("delete_event", self._on_window_delete_event)
-        self._window.maximize()
-        
-        self._note_container = builder.get_object("note_container")
-        self._note_editor = NoteEditor(self)
-        self._note_container.add(self._note_editor)
-        self._note_editor.connect("script-alert", self._on_note_editor_message)
-        
-        self._tags_liststore = builder.get_object("tags_liststore")
-        self._notebooks_liststore = builder.get_object("notebooks_liststore")
-        self._notes_treeview = builder.get_object("notes_treeview")
-        self._notes_liststore = builder.get_object("notes_liststore")
-        
-        builder.get_object("sync_action").connect("activate", self._on_sync_clicked)
-        builder.get_object("quit_action").connect("activate", self._on_quit_clicked)
-        builder.get_object("notes_treeview").get_selection().connect("changed", self._notes_treeview_selection_changed)
     
-    def _on_note_editor_message(self, editor, frame, message):
+    def handle_client_command(self, message):
         i = message.index(":")
         command = message[:i]
         params = message[i+1:]
@@ -76,8 +90,9 @@ class Application(object):
             note_local_id = int(params[:i])
             title = params[i+1:]
             self._account.update_note_title(note_local_id, title)
-            
-        return True
+        elif command == "edit_note":
+            note_local_id = int(params)
+            self.edit_note(note_local_id)
     
     def edit_note(self, note_local_id):
         note = self._account.get_note(note_local_id)
@@ -89,18 +104,12 @@ class Application(object):
             new_img.newProp("src", "data:%s;base64,%s" % (resource['mime'], binascii.b2a_base64(resource['data'])))
             new_img.newProp("hash", img.prop("hash"))
             img.replaceNode(new_img)
-        replace_data = {
-            "note_local_id": str(note_local_id),
-            "note_contents": str(document),
-            "note_title": self._htmlentities_encode(note['title']),
-            "tinymce_src": urlparse.urljoin('file:', urllib.pathname2url(os.path.join(self._cli_options.share_dir, "fever", "tinymce", "tinymce.min.js")))
+        note_data = {
+            "local_id": note_local_id,
+            "title": self._htmlentities_encode(note['title']),
+            "contents": str(document)
         }
-        f = open(os.path.join(self._cli_options.share_dir, "fever", "ui", "note_editor.html"), "r")
-        contents = f.read()
-        f.close()
-        for key in replace_data:
-            contents = contents.replace("%%%s%%" % key, replace_data[key])
-        self._note_editor.load_html_string(contents, "file:///")
+        self._window.send_command("set_editing_note(%s)" % json.dumps(note_data))
     
     def _htmlentities_encode(self, string):
         res = ""
@@ -112,12 +121,6 @@ class Application(object):
             else:
                 res += i
         return res
-    
-    def _notes_treeview_selection_changed(self, selection):
-        store, paths = selection.get_selected_rows()
-        if len(paths) == 1:
-            note_local_id = self._notes_liststore[paths[0]][0]
-            self.edit_note(note_local_id)
     
     def _check_quit(self):
         self._window.hide()
@@ -162,25 +165,26 @@ class Application(object):
             self._refresh_display()
         
     def _refresh_display(self):
-        self._tags_liststore.clear()
-        self._notebooks_liststore.clear()
-        self._notes_liststore.clear()
+        self._window.send_command("clear_all()")
         
         if not self._account:
             return
             
         tags_list = self._account.list_tags()
         tags_list.sort(lambda a,b: cmp(a["name"].lower(), b["name"].lower()))
-        for tag in tags_list:
-            self._tags_liststore.append([tag["local_id"], tag["name"]])
+        self._window.send_command("update_tags_list(%s)" % json.dumps(tags_list))
             
         notebooks_list = self._account.list_notebooks() 
         notebooks_list.sort(lambda a,b: cmp(a["name"].lower(), b["name"].lower()))
-        for notebook in notebooks_list:
-            self._notebooks_liststore.append([notebook["local_id"], notebook["name"]])
+        self._window.send_command("update_notebooks_list(%s)" % json.dumps(notebooks_list))
         
+        notes_list = []
         for note in self._account.list_notes():
-            self._notes_liststore.append([note["local_id"], note["title"]])
+            notes_list.append({
+                "local_id": note["local_id"],
+                "title": self._htmlentities_encode(note['title'])
+            })
+        self._window.send_command("update_notes_list(%s)" % json.dumps(notes_list))
     
     def _on_account_authentication_success(self, account):
         account.sync()

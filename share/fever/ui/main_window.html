@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script type="text/javascript" src="http://code.jquery.com/jquery-1.9.1.js"></script>
+        <script type="text/javascript" src="http://code.jquery.com/ui/1.10.3/jquery-ui.js"></script>
+        <script type="text/javascript" src="../../../jqTree/tree.jquery.js"></script>
+        <script type='text/javascript' src='../tinymce/tinymce.min.js'></script>
+        <script type='text/javascript' src='main_window.js'></script>
+        
+        <link rel="stylesheet" type="text/css" href="main_window.css"/>
+        <link rel="stylesheet" type="text/css" href="http://code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css">
+        <link rel="stylesheet" type="text/css" href="../../../jqTree/jqtree.css"/>
+    </head>
+    <body>
+        <div id="header"></div>
+        
+        <div id="leftbar">
+            <div id="notebookslist_wrapper">
+                <h3>Notebooks</h3>
+                <div id="notebookslist"></div>
+            </div>
+            
+            <div id="tagslist_wrapper">
+                <h3>Tags</h3>
+                <div id="tagslist"></div>
+            </div>
+        </div>
+        
+        <div id="noteslist_wrapper">
+            <h3>All notes</h3>
+            <div id="noteslist"></div>
+        </div>
+        
+        <div id="noteeditor_wrapper">
+            <div id="noteeditor_inside_wrapper">
+                <div id="noteeditor">
+                    <input type='text' id='note_title' value='' style=''/>
+                    <div id='tinymcecontainer'></div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
