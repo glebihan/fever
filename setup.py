@@ -72,6 +72,10 @@ os.chdir("..")
 os.system("mkdir -p share/fever/jquery-ui")
 os.system("cp -R jquery-ui/dist/* share/fever/jquery-ui")
 
+# package jqTree
+os.system("mkdir -p share/fever/jqTree")
+os.system("cp -R jqTree/tree.jquery.js jqTree/jqtree.css share/fever/jqTree")
+
 # package evernote API
 os.system("cp -R evernote/lib/evernote evernote/lib/thrift Fever")
 
