@@ -532,6 +532,7 @@ class FeverAccount(EventsObject):
                     
         except:
             logging.error(sys.exc_info())
+            self.sync_state = _("Error : " + str(sys.exc_info()))
     
     def _do_sync(self):
         logging.debug("_do_sync")
