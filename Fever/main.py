@@ -51,6 +51,7 @@ class Application(object):
         builder.get_object("quit_action").connect("activate", self._on_quit_clicked)
         builder.get_object("sync_action").connect("activate", self._on_sync_clicked)
         builder.get_object("about_action").connect("activate", self._on_about_clicked)
+        builder.get_object("new_note_action").connect("activate", self._on_new_note_clicked)
         
         self._window.maximize()
         
@@ -153,6 +154,12 @@ class Application(object):
     
     def _on_about_clicked(self, menuitem):
         self._about_dialog.run()
+    
+    def _on_new_note_clicked(self, menuitem):
+        if self._account:
+            note_local_id = self._account.create_new_note()
+            self._refresh_display()
+            self.edit_note(note_local_id)
     
     def _on_account_need_token(self, account):
         f = open(os.path.join(os.path.split(sys.argv[0])[0], "evernote_dev_token"))

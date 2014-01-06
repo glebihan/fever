@@ -258,6 +258,12 @@ class FeverAccountDB(object):
             return
         
         self._query("UPDATE " + element_type + " SET " + field + "=?, dirty=1 WHERE local_id=?", (value, local_id))
+    
+    def create_new_note(self, notebook_local_id = None):
+        if notebook_local_id == None:
+            notebook_local_id = self._query("SELECT local_id FROM notebooks WHERE defaultNotebook=1")[0][0]
+        self._query("INSERT INTO notes (title, dirty, content, notebook_local_id) VALUES (?, 1, ?, ?)", (_("New note"), "<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE en-note SYSTEM \"http://xml.evernote.com/pub/enml2.dtd\"><en-note></en-note>", notebook_local_id))
+        return self._query("SELECT MAX(local_id) FROM notes")[0][0]
 
 class FeverAccount(EventsObject):
     def __init__(self, username):
@@ -295,6 +301,9 @@ class FeverAccount(EventsObject):
     def update_note_notebook(self, note_local_id, notebook_local_id):
         self._account_data_db.update_element_field("notes", "notebook_local_id", note_local_id, notebook_local_id)
         self._account_data_db.update_element_field("notes", "notebookGuid", note_local_id, "")
+    
+    def create_new_note(self, notebook_local_id = None):
+        return self._account_data_db.create_new_note(notebook_local_id)
     
     def get_resource_by_hash(self, resource_hash):
         return self._account_data_db.get_element_by_hash("resources", resource_hash)
@@ -511,7 +520,7 @@ class FeverAccount(EventsObject):
                         elif element_type == "notebooks":
                             server_element = noteStore.createNotebook(EvernoteTypes.Notebook(name = client_element["name"]))
                         elif element_type == "notes":
-                            server_element = noteStore.createNote(EvernoteTypes.Note(title = client_element["title"]))
+                            server_element = noteStore.createNote(EvernoteTypes.Note(title = client_element["title"], content = client_element["content"]))
                             server_element.notebook_local_id = client_element["notebook_local_id"]
                         self._account_data_db.update_element_from_server(element_type, client_element["local_id"], server_element)
             
