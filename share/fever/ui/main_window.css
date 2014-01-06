@@ -54,6 +54,9 @@
 
 #noteeditor_inside_wrapper{
     height: 100%;
+}
+
+#noteeditor_inside_inside_wrapper{
     border-radius: 3px;
     border: #B3B3B3 solid 1px;
     background-color: #FFFFFF;

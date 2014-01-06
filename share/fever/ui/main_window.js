@@ -21,6 +21,7 @@ function set_editing_note(note_data){
     editing_note_notebook_local_id = note_data.notebook_local_id;
     jQuery("#note_notebook_selector").val(note_data.notebook_local_id);
     jQuery("#noteeditor_wrapper").toggle(true);
+    update_editor_height();
 }
 
 function update_notes_list(notes_list){
