@@ -28,7 +28,7 @@ function update_notes_list(notes_list){
     
     jQuery("#noteslist").html("");
     for (var i in notes_list){
-        link = jQuery("<a href='#note_" + notes_list[i].local_id + "'>" + notes_list[i].title + "</a>");
+        link = jQuery("<a notebook_local_id='" + notes_list[i].notebook_local_id + "' href='#note_" + notes_list[i].local_id + "'>" + notes_list[i].title + "</a>");
         link.click(function(event){
             edit_note(jQuery(this).attr("href").substring(6));
             event.preventDefault();
@@ -72,6 +72,15 @@ function update_noteslist_height(){
 jQuery(document).ready(function(){
     jQuery("#notebookslist").tree({
         data: []
+    });
+    jQuery("#notebookslist").bind('tree.select', function(event){
+        if (event.node){
+            jQuery("#noteslist > a").each(function(index){
+                jQuery(this).toggle(jQuery(this).attr("notebook_local_id") == event.node.local_id);
+            });
+        }else{
+            jQuery("#noteslist > a").toggle(true);
+        }
     });
     jQuery("#tagslist").tree({
         data: []

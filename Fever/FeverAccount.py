@@ -266,6 +266,10 @@ class FeverAccount(EventsObject):
         self._username = username
         self._account_data_file = os.path.join(os.getenv("HOME"), ".local", "share", "fever", "accounts", self._username + ".db")
         self._account_data_db = FeverAccountDB(self._account_data_file)
+        
+        self._sync_running_lock = threading.Lock()
+        self._sync_running = False
+        self._restart_sync = False
     
     def list_tags(self):
         return [tag for tag in self._account_data_db.list_elements("tags") if tag["deleted"] == False]
@@ -499,10 +503,26 @@ class FeverAccount(EventsObject):
     def _do_sync(self):
         logging.debug("_do_sync")
         if not self.lastSyncTime:
-            return self._do_full_sync()
+            self._do_full_sync()
+        
+        self._sync_running_lock.acquire()
+        restart_sync = self._restart_sync
+        self._restart_sync = False
+        if not restart_sync:
+            self._sync_running = False
+        self._sync_running_lock.release()
+        if restart_sync:
+            self._do_sync()
     
     def sync(self):
         self._trigger("sync_start")
+        self._sync_running_lock.acquire()
+        if self._sync_running:
+            self._restart_sync = True
+            self._sync_running_lock.release()
+            return
+        self._sync_running = True
+        self._sync_running_lock.release()
         ThreadedTask(target = self._do_sync, callback = self._on_sync_done).run()
     
     def _on_sync_done(self, response):

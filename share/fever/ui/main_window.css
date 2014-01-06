@@ -23,6 +23,7 @@
     overflow-x: hidden;
     overflow-y: auto;
     height: 100%;
+    border-top: #B3B3B3 solid 1px;
 }
 
 #noteslist_wrapper h3{
@@ -30,13 +31,11 @@
     padding-right: 10px;
 }
 
-#noteslist > a:first-child{
-    border-top: #B3B3B3 solid 1px;
-}
 #noteslist > a{
     display: block;
     height: 40px;
     border-bottom: #B3B3B3 solid 1px;
+    margin-top: -1px;
     padding-left: 10px;
     padding-right: 10px;
 }

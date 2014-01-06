@@ -72,9 +72,13 @@ class Application(object):
             self._webview_pending_commands.append(command)
     
     def _on_webview_script_alert(self, editor, frame, message):
-        i = message.index(":")
-        command = message[:i]
-        params = message[i+1:]
+        if ":" in message:
+            i = message.index(":")
+            command = message[:i]
+            params = message[i+1:]
+        else:
+            command = message
+            params = ""
         
         if command == "set_note_contents":
             i = params.index(":")
@@ -170,7 +174,7 @@ class Application(object):
             gtk.main_quit()
         else:
             self._refresh_display()
-        
+    
     def _refresh_display(self):
         self.send_command("clear_all()")
         
@@ -199,9 +203,9 @@ class Application(object):
         client_notebooks_list = []
         for stack in stacks:
             stacks[stack].sort(lambda a,b: cmp(a["name"].lower(), b["name"].lower()))
-            client_notebooks_list.append({"label": stack, "children": [{"label": n["name"]} for n in stacks[stack]]})
+            client_notebooks_list.append({"label": stack, "children": [{"label": n["name"], "local_id": n["local_id"]} for n in stacks[stack]]})
         for notebook in stackless_notebooks:
-            client_notebooks_list.append({"label": notebook["name"]})
+            client_notebooks_list.append({"label": notebook["name"], "local_id": notebook["local_id"]})
         client_notebooks_list.sort(lambda a,b: cmp(a["label"].lower(), b["label"].lower()))
         self.send_command("update_notebooks_list(%s)" % json.dumps(client_notebooks_list))
         client_notebooks_list = [{'local_id': notebook['local_id'], 'label': notebook['name']} for notebook in notebooks_list if notebook["deleted"] == 0]
