@@ -1,5 +1,11 @@
 var editing_note_local_id = null;
 var editing_note_notebook_local_id = null;
+var notes_notebook_filter = null;
+var notes_tag_filter = new Array();
+
+function _(string){
+    return string;
+}
 
 function clear_all(){
 }
@@ -21,6 +27,8 @@ function set_editing_note(note_data){
     editing_note_notebook_local_id = note_data.notebook_local_id;
     jQuery("#note_notebook_selector").val(note_data.notebook_local_id);
     jQuery("#noteeditor_wrapper").toggle(true);
+    jQuery("#noteslist > a.edited").removeClass("edited");
+    jQuery("#noteslist > a[href='#note_" + editing_note_local_id + "']").addClass("edited");
     update_editor_height();
 }
 
@@ -36,12 +44,20 @@ function update_notes_list(notes_list){
         });
         link.appendTo("#noteslist");
     }
+    
+    if (editing_note_local_id){
+        jQuery("#noteslist > a[href='#note_" + editing_note_local_id + "']").addClass("edited");
+    }
+    
+    update_notes_filter();
 }
 
 function update_note_notebook(notebook_local_id){
     if (editing_note_local_id){
         alert("set_note_notebook:" + editing_note_local_id + ":" + notebook_local_id);
         editing_note_notebook_local_id = notebook_local_id;
+        jQuery("#noteslist > a[href='#note_" + editing_note_local_id + "']").attr("notebook_local_id", notebook_local_id);
+        update_notes_filter();
     }
 }
 
@@ -51,6 +67,10 @@ function update_tags_list(tags_list){
 
 function update_notebooks_list(notebooks_list){
     jQuery("#notebookslist").tree("loadData", notebooks_list);
+    if (notes_notebook_filter){
+        var node = jQuery("#notebookslist").tree("getNodeById", notes_notebook_filter.id);
+        jQuery("#notebookslist").tree('selectNode', node);
+    }
 }
 
 function update_note_notebook_selector(notebooks_list){
@@ -69,19 +89,38 @@ function update_noteslist_height(){
     jQuery("#noteslist").css("height", (jQuery("#noteslist_wrapper").height() - jQuery("#noteslist").offset().top) + "px");
 }
 
+function update_notes_filter(){
+    if (notes_notebook_filter === null){
+        jQuery("#noteslist_wrapper > h3").html(_("All notes"));
+        jQuery("#noteslist > a").toggle(true);
+    }else{
+        jQuery("#noteslist_wrapper > h3").html(notes_notebook_filter.name);
+        var ids_list = new Array();
+        if (notes_notebook_filter.children && notes_notebook_filter.children.length > 0){
+            for (var i in notes_notebook_filter.children){
+                ids_list.push(notes_notebook_filter.children[i].id);
+            }
+        }else{
+            ids_list.push(notes_notebook_filter.id);
+        }
+        jQuery("#noteslist > a").each(function(index){
+            jQuery(this).toggle(ids_list.indexOf(parseInt(jQuery(this).attr("notebook_local_id"))) != -1);
+        });
+    }
+}
 
 jQuery(document).ready(function(){
     jQuery("#notebookslist").tree({
         data: []
     });
     jQuery("#notebookslist").bind('tree.select', function(event){
-        if (event.node){
-            jQuery("#noteslist > a").each(function(index){
-                jQuery(this).toggle(jQuery(this).attr("notebook_local_id") == event.node.local_id);
-            });
+        if (event.node && event.node.id == -1){
+            notes_notebook_filter = null;
+            notes_tags_filter = null;
         }else{
-            jQuery("#noteslist > a").toggle(true);
+            notes_notebook_filter = event.node;
         }
+        update_notes_filter();
     });
     jQuery("#tagslist").tree({
         data: []

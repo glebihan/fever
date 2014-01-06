@@ -211,11 +211,12 @@ class Application(object):
                 else:
                     stackless_notebooks.append(notebook)
         client_notebooks_list = []
+        client_notebooks_list.append({"label": _("All notes"), "id": -1})
         for stack in stacks:
             stacks[stack].sort(lambda a,b: cmp(a["name"].lower(), b["name"].lower()))
-            client_notebooks_list.append({"label": stack, "children": [{"label": n["name"], "local_id": n["local_id"]} for n in stacks[stack]]})
+            client_notebooks_list.append({"id": stack, "label": stack, "children": [{"label": n["name"], "id": n["local_id"]} for n in stacks[stack]]})
         for notebook in stackless_notebooks:
-            client_notebooks_list.append({"label": notebook["name"], "local_id": notebook["local_id"]})
+            client_notebooks_list.append({"label": notebook["name"], "id": notebook["local_id"]})
         client_notebooks_list.sort(lambda a,b: cmp(a["label"].lower(), b["label"].lower()))
         self.send_command("update_notebooks_list(%s)" % json.dumps(client_notebooks_list))
         client_notebooks_list = [{'local_id': notebook['local_id'], 'label': notebook['name']} for notebook in notebooks_list if notebook["deleted"] == 0]

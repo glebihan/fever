@@ -39,6 +39,12 @@
     padding-left: 10px;
     padding-right: 10px;
 }
+#noteslist > a.edited{
+    background-color: #ECF0F3;
+}
+#noteslist > a:hover{
+    background-color: #D1D4D7;
+}
 
 #noteeditor_wrapper{
     display: none;
