@@ -44,6 +44,8 @@ class Application(object):
         self._webview.connect("script-alert", self._on_webview_script_alert)
         
         self._webview.load_uri(urlparse.urljoin('file:', urllib.pathname2url(os.path.join(self.cli_options.share_dir, "fever", "ui", "main_window.html"))))
+        
+        self._statusbar = builder.get_object("statusbar")
 
         self._window.connect("delete_event", self._on_window_delete_event)
         builder.get_object("quit_action").connect("activate", self._on_quit_clicked)
@@ -163,6 +165,7 @@ class Application(object):
             self._account.destroy()
             self._account = None
         self._account = FeverAccount(username)
+        self._account.connect("sync_start", self._on_account_sync_start)
         self._account.connect("need_token", self._on_account_need_token)
         self._account.connect("authentication_success", self._on_account_authentication_success)
         self._account.connect("sync_done", self._on_account_sync_done)
@@ -224,6 +227,19 @@ class Application(object):
     
     def _on_account_authentication_success(self, account):
         account.sync()
+    
+    def _on_account_sync_start(self, account):
+        if not self._is_quitting:
+            gobject.timeout_add(100, self._watch_account_sync)
+    
+    def _watch_account_sync(self):
+        if self._account:
+            sync_state = self._account.sync_state
+            if sync_state:
+                self._statusbar.push(self._statusbar.get_context_id("sync"), _("Synchronizing : ") + sync_state)
+                return True
+        self._statusbar.push(self._statusbar.get_context_id("sync"), "")
+        return False
     
     def run(self):
         gtk.gdk.threads_init()

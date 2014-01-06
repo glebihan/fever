@@ -267,6 +267,9 @@ class FeverAccount(EventsObject):
         self._account_data_file = os.path.join(os.getenv("HOME"), ".local", "share", "fever", "accounts", self._username + ".db")
         self._account_data_db = FeverAccountDB(self._account_data_file)
         
+        self._sync_state_lock = threading.Lock()
+        self._sync_state = ""
+        
         self._sync_running_lock = threading.Lock()
         self._sync_running = False
         self._restart_sync = False
@@ -340,9 +343,21 @@ class FeverAccount(EventsObject):
         self._account_data_db.set_global_data("lastUpdateCount", lastUpdateCount)
     lastUpdateCount = property(_get_lastUpdateCount, _set_lastUpdateCount)
     
+    def _get_sync_state(self):
+        self._sync_state_lock.acquire()
+        res = self._sync_state
+        self._sync_state_lock.release()
+        return res
+    def _set_sync_state(self, sync_state):
+        self._sync_state_lock.acquire()
+        self._sync_state = sync_state
+        self._sync_state_lock.release()
+    sync_state = property(_get_sync_state, _set_sync_state)
+    
     def _do_full_sync(self):
         logging.debug("_do_full_sync")
         try:
+            self.sync_state = _("Starting...")
             chunk_filter = NoteStore.SyncChunkFilter(**{
                 "includeNotes": True,
                 "includeTags": True,
@@ -355,6 +370,8 @@ class FeverAccount(EventsObject):
             })
             client = EvernoteClient(token = self.token)
             noteStore = client.get_note_store()
+            
+            self.sync_state = _("Retrieving data from server...")
             
             chunks_list = []
             chunk = noteStore.getFilteredSyncChunk(0, 100, chunk_filter)
@@ -375,6 +392,8 @@ class FeverAccount(EventsObject):
                     elements["notes"] += chunk.notes
             
             # Sync
+            
+            self.sync_state = _("Downloading...")
             
             elements_to_upload = {}
             elements_on_both_sides = {}
@@ -455,6 +474,9 @@ class FeverAccount(EventsObject):
             need_incremental_sync = False
             
             # Upload
+            
+            self.sync_state = _("Uploading...")
+            
             for element_type in ELEMENTS_TYPES:
                 for server_element, client_element in elements_to_upload[element_type]:
                     if client_element["updateSequenceNum"]:
@@ -496,6 +518,8 @@ class FeverAccount(EventsObject):
             if need_incremental_sync:
                 logging.debug("need_incremental_sync")
                 self._do_sync()
+            
+            self.sync_state = ""
                     
         except:
             logging.error(sys.exc_info())
