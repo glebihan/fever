@@ -1,6 +1,7 @@
 body{
     font-family: Helvetica, Arial, sans-serif;
     color: #1D1D1D;
+    background-color: #EAEDEF;
 }
 
 #leftbar{
@@ -23,6 +24,7 @@ body{
     bottom: 0px;
     top: 0px;
     left: 220px;
+    background-color: #FFFFFF;
 }
 
 #noteslist{
@@ -133,4 +135,12 @@ body{
     border-radius: 3px;
     padding: 3px;
     display: none;
+}
+
+#searchbox_notebook_filter a.delete, #searchbox_tag_filter a.delete{
+    margin-left: 3px;
+}
+
+#searchbox_notebook_filter a.delete img, #searchbox_tag_filter a.delete img{
+    vertical-align: middle;
 }
