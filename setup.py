@@ -56,13 +56,14 @@ os.system("npm install")
 os.system("jake")
 os.chdir("..")
 os.system("cp -R tinymce/js/tinymce share/fever")
+os.system("cp -R tinymce/LICENSE.TXT share/fever/tinymce")
 
 # build jquery
 os.chdir("jquery")
 os.system("npm run build")
 os.chdir("..")
 os.system("mkdir -p share/fever/jquery")
-os.system("cp jquery/dist/jquery.min.js share/fever/jquery")
+os.system("cp jquery/dist/jquery.min.js jquery/MIT-LICENSE.txt share/fever/jquery")
 
 # build jquery-ui
 os.chdir("jquery-ui")
@@ -70,14 +71,16 @@ os.system("npm install")
 os.system("grunt concat")
 os.chdir("..")
 os.system("mkdir -p share/fever/jquery-ui")
-os.system("cp -R jquery-ui/dist/* share/fever/jquery-ui")
+os.system("cp -R jquery-ui/dist/* jquery-ui/MIT-LICENSE.txt share/fever/jquery-ui")
 
 # package jqTree
 os.system("mkdir -p share/fever/jqTree")
-os.system("cp -R jqTree/tree.jquery.js jqTree/jqtree.css share/fever/jqTree")
+os.system("cp -R jqTree/tree.jquery.js jqTree/jqtree.css jqTree/LICENSE share/fever/jqTree")
 
 # package evernote API
 os.system("cp -R evernote/lib/evernote evernote/lib/thrift Fever")
+os.system("cp -R evernote/LICENSE evernote/APACHE-LICENSE-2.0.txt Fever/evernote")
+os.system("cp -R evernote/LICENSE evernote/APACHE-LICENSE-2.0.txt Fever/thrift")
 
 setup(
     name = UNIX_APPNAME,
