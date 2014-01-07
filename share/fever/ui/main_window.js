@@ -99,7 +99,7 @@ function update_noteslist_height(){
 
 function update_notes_filter(){
     if (notes_notebook_filter === null){
-        jQuery("#noteslist_wrapper > h3").html(_("All notes"));
+        jQuery("#noteslist_wrapper > h3").html(jQuery("#notebookslist").tree("getNodeById", "-1").name);
         jQuery("#noteslist > a").toggle(true);
     }else{
         jQuery("#noteslist_wrapper > h3").html(notes_notebook_filter.name);
