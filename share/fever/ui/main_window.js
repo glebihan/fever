@@ -1,6 +1,7 @@
 var editing_note_local_id = null;
 var editing_note_notebook_local_id = null;
 var notes_notebook_filter = null;
+var notebooks_list_open_nodes = new Array();
 var notes_tag_filter = new Array();
 
 function _(string){
@@ -66,10 +67,17 @@ function update_tags_list(tags_list){
 }
 
 function update_notebooks_list(notebooks_list){
+    var node;
     jQuery("#notebookslist").tree("loadData", notebooks_list);
     if (notes_notebook_filter){
-        var node = jQuery("#notebookslist").tree("getNodeById", notes_notebook_filter.id);
+        node = jQuery("#notebookslist").tree("getNodeById", notes_notebook_filter.id);
         jQuery("#notebookslist").tree('selectNode', node);
+    }
+    for (var i in notebooks_list_open_nodes){
+        node = jQuery("#notebookslist").tree("getNodeById", notebooks_list_open_nodes[i]);
+        if (node){
+            jQuery("#notebookslist").tree('openNode', node);
+        }
     }
 }
 
@@ -96,7 +104,7 @@ function update_notes_filter(){
     }else{
         jQuery("#noteslist_wrapper > h3").html(notes_notebook_filter.name);
         var ids_list = new Array();
-        if (notes_notebook_filter.children && notes_notebook_filter.children.length > 0){
+        if (notes_notebook_filter.children && notes_notebook_filter.is_stack > 0){
             for (var i in notes_notebook_filter.children){
                 ids_list.push(notes_notebook_filter.children[i].id);
             }
@@ -111,7 +119,20 @@ function update_notes_filter(){
 
 jQuery(document).ready(function(){
     jQuery("#notebookslist").tree({
-        data: []
+        data: [],
+        dragAndDrop: true,
+        autoOpen: 0,
+        onCanMove: function(node){
+            return (!node.is_stack);
+        },
+        onCanMoveTo: function(moved_node, target_node, position){
+            if (target_node.is_stack || target_node.id == -1){
+                return (position == 'inside');
+            }
+            else {
+                return false;
+            }
+        }
     });
     jQuery("#notebookslist").bind('tree.select', function(event){
         if (event.node && event.node.id == -1){
@@ -121,6 +142,23 @@ jQuery(document).ready(function(){
             notes_notebook_filter = event.node;
         }
         update_notes_filter();
+    });
+    jQuery("#notebookslist").bind('tree.move', function(event){
+        if (event.move_info.target_node.id == -1){
+            alert("update_notebook_stack:" + event.move_info.moved_node.id + ":");
+        }else{
+            alert("update_notebook_stack:" + event.move_info.moved_node.id + ":" + event.move_info.target_node.id);
+        }
+    });
+    jQuery("#notebookslist").bind('tree.open', function(event){
+        notebooks_list_open_nodes.push(event.node.id);
+    });
+    jQuery("#notebookslist").bind('tree.close', function(event){
+        var i = notebooks_list_open_nodes.indexOf(event.node.id);
+        while (i != -1){
+            notebooks_list_open_nodes.splice(i, 1);
+            i = notebooks_list_open_nodes.indexOf(event.node.id);
+        }
     });
     jQuery("#tagslist").tree({
         data: []

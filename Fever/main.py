@@ -101,6 +101,12 @@ class Application(object):
             note_local_id = int(params[:i])
             notebook_local_id = int(params[i+1:])
             self._account.update_note_notebook(note_local_id, notebook_local_id)
+        elif command == "update_notebook_stack":
+            i = params.index(":")
+            notebook_local_id = int(params[:i])
+            stack = params[i+1:]
+            self._account.update_notebook_stack(notebook_local_id, stack)
+            self._refresh_display_notebooks()
             
         return True
     
@@ -198,7 +204,20 @@ class Application(object):
             if tag["deleted"] == 0:
                 client_tags_list.append({"label": tag["name"]})
         self.send_command("update_tags_list(%s)" % json.dumps(client_tags_list))
-            
+        
+        self._refresh_display_notebooks()
+        
+        notes_list = []
+        for note in self._account.list_notes():
+            if note["deleted"] == 0:
+                notes_list.append({
+                    "local_id": note["local_id"],
+                    "notebook_local_id": note["notebook_local_id"],
+                    "title": self._htmlentities_encode(note['title'])
+                })
+        self.send_command("update_notes_list(%s)" % json.dumps(notes_list))
+    
+    def _refresh_display_notebooks(self):
         notebooks_list = self._account.list_notebooks()
         stacks = {}
         stackless_notebooks = []
@@ -211,27 +230,17 @@ class Application(object):
                 else:
                     stackless_notebooks.append(notebook)
         client_notebooks_list = []
-        client_notebooks_list.append({"label": _("All notes"), "id": -1})
+        client_notebooks_list.append({"label": _("All notes"), "id": -1, "is_stack": False, "children": []})
         for stack in stacks:
             stacks[stack].sort(lambda a,b: cmp(a["name"].lower(), b["name"].lower()))
-            client_notebooks_list.append({"id": stack, "label": stack, "children": [{"label": n["name"], "id": n["local_id"]} for n in stacks[stack]]})
+            client_notebooks_list[0]["children"].append({"id": stack, "label": stack, "is_stack": True, "children": [{"label": n["name"], "id": n["local_id"]} for n in stacks[stack]]})
         for notebook in stackless_notebooks:
-            client_notebooks_list.append({"label": notebook["name"], "id": notebook["local_id"]})
-        client_notebooks_list.sort(lambda a,b: cmp(a["label"].lower(), b["label"].lower()))
+            client_notebooks_list[0]["children"].append({"label": notebook["name"], "is_stack": False, "id": notebook["local_id"]})
+        client_notebooks_list[0]["children"].sort(lambda a,b: cmp(a["label"].lower(), b["label"].lower()))
         self.send_command("update_notebooks_list(%s)" % json.dumps(client_notebooks_list))
         client_notebooks_list = [{'local_id': notebook['local_id'], 'label': notebook['name']} for notebook in notebooks_list if notebook["deleted"] == 0]
         client_notebooks_list.sort(lambda a,b: cmp(a["label"].lower(), b["label"].lower()))
         self.send_command("update_note_notebook_selector(%s)" % json.dumps(client_notebooks_list))
-        
-        notes_list = []
-        for note in self._account.list_notes():
-            if note["deleted"] == 0:
-                notes_list.append({
-                    "local_id": note["local_id"],
-                    "notebook_local_id": note["notebook_local_id"],
-                    "title": self._htmlentities_encode(note['title'])
-                })
-        self.send_command("update_notes_list(%s)" % json.dumps(notes_list))
     
     def _on_account_authentication_success(self, account):
         account.sync()

@@ -302,6 +302,9 @@ class FeverAccount(EventsObject):
         self._account_data_db.update_element_field("notes", "notebook_local_id", note_local_id, notebook_local_id)
         self._account_data_db.update_element_field("notes", "notebookGuid", note_local_id, "")
     
+    def update_notebook_stack(self, notebook_local_id, stack):
+        self._account_data_db.update_element_field("notebooks", "stack", notebook_local_id, stack)
+    
     def create_new_note(self, notebook_local_id = None):
         return self._account_data_db.create_new_note(notebook_local_id)
     
@@ -493,7 +496,7 @@ class FeverAccount(EventsObject):
                             if element_type == "notes" and client_element["notebookGuid"] == "":
                                 # Note was moved to a different notebook
                                 client_element["notebookGuid"] = self._account_data_db.lookup_element_by_local_id("notebooks", client_element["notebook_local_id"])["guid"]
-                            if field in ["parentGuid"] and client_element[field] == "":
+                            if field in ["parentGuid", "stack"] and client_element[field] == "":
                                 value = None
                             else:
                                 value = client_element[field]
