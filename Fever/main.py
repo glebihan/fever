@@ -227,10 +227,14 @@ class Application(object):
         notes_list = []
         for note in self._account.list_notes():
             if note["deleted"] == 0:
+                tree = libxml2.htmlParseDoc(note["content"], "utf-8")
+                document = HTMLNode(tree.getRootElement())
+                summary = document.getContent()[:100]
                 notes_list.append({
                     "local_id": note["local_id"],
                     "notebook_local_id": note["notebook_local_id"],
-                    "title": self._htmlentities_encode(note['title'])
+                    "title": self._htmlentities_encode(note['title']),
+                    "summary": summary
                 })
         self.send_command("update_notes_list(%s)" % json.dumps(notes_list))
     

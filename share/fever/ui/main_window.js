@@ -38,7 +38,7 @@ function update_notes_list(notes_list){
     
     jQuery("#noteslist").html("");
     for (var i in notes_list){
-        link = jQuery("<a notebook_local_id='" + notes_list[i].notebook_local_id + "' href='#note_" + notes_list[i].local_id + "'>" + notes_list[i].title + "</a>");
+        link = jQuery("<a notebook_local_id='" + notes_list[i].notebook_local_id + "' href='#note_" + notes_list[i].local_id + "'><span class='title'>" + notes_list[i].title + "</span><span class='summary'>" + notes_list[i].summary + "</span></a>");
         link.click(function(event){
             edit_note(jQuery(this).attr("href").substring(6));
             event.preventDefault();

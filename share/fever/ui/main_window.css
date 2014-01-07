@@ -1,5 +1,10 @@
+body{
+    font-family: Helvetica, Arial, sans-serif;
+    color: #1D1D1D;
+}
+
 #leftbar{
-    background-color: #EAEDEF;
+    background-color: #BBBBBB;
     width: 200px;
     border: #B3B3B3 solid 1px;
     position: absolute;
@@ -8,6 +13,7 @@
     left: 0px;
     padding-left: 10px;
     padding-right: 10px;
+    color: #000000;
 }
 
 #noteslist_wrapper{
@@ -23,7 +29,6 @@
     overflow-x: hidden;
     overflow-y: auto;
     height: 100%;
-    border-top: #B3B3B3 solid 1px;
 }
 
 #noteslist_wrapper h3{
@@ -33,17 +38,27 @@
 
 #noteslist > a{
     display: block;
-    height: 40px;
+    height: 60px;
     border-bottom: #B3B3B3 solid 1px;
     margin-top: -1px;
+    padding-top: 5px;
+    padding-bottom: 5px;
     padding-left: 10px;
     padding-right: 10px;
+    font-size: 12px;
+    color: #1D1D1D;
+    text-decoration: none;
 }
 #noteslist > a.edited{
     background-color: #ECF0F3;
 }
 #noteslist > a:hover{
     background-color: #D1D4D7;
+}
+#noteslist > a span.title{
+    font-weight: bold;
+    display: block;
+    font-size: 15px;
 }
 
 #noteeditor_wrapper{

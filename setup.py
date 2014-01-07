@@ -76,7 +76,7 @@ os.system("cp -R jquery-ui/dist/* jquery-ui/MIT-LICENSE.txt share/fever/jquery-u
 
 # package jqTree
 os.system("mkdir -p share/fever/jqTree")
-os.system("cp -R jqTree/tree.jquery.js jqTree/jqtree.css jqTree/LICENSE share/fever/jqTree")
+os.system("cp -R jqTree/tree.jquery.js jqTree/LICENSE share/fever/jqTree")
 
 # package evernote API
 os.system("cp -R evernote/lib/evernote evernote/lib/thrift Fever")
