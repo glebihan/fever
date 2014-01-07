@@ -2,7 +2,7 @@ var editing_note_local_id = null;
 var editing_note_notebook_local_id = null;
 var notes_notebook_filter = null;
 var notebooks_list_open_nodes = new Array();
-var notes_tag_filter = new Array();
+var notes_tag_filter = null;
 
 function _(string){
     return string;
@@ -99,8 +99,11 @@ function update_noteslist_height(){
 
 function update_notes_filter(){
     if (notes_notebook_filter === null){
+        jQuery("#searchbox_notebook_filter").toggle(false);
+        jQuery("#searchbox_tag_filter").toggle(false);
         jQuery("#noteslist_wrapper > h3").html(jQuery("#notebookslist").tree("getNodeById", "-1").name);
         jQuery("#noteslist > a").toggle(true);
+        resize_search_input();
     }else{
         jQuery("#noteslist_wrapper > h3").html(notes_notebook_filter.name);
         var ids_list = new Array();
@@ -114,7 +117,23 @@ function update_notes_filter(){
         jQuery("#noteslist > a").each(function(index){
             jQuery(this).toggle(ids_list.indexOf(parseInt(jQuery(this).attr("notebook_local_id"))) != -1);
         });
+        
+        jQuery("#searchbox_notebook_filter").find("span.value").html(notes_notebook_filter.name);
+        resize_search_input();
+        jQuery("#searchbox_notebook_filter").toggle(true);
     }
+}
+
+function resize_search_input(){
+    var width = jQuery("#searchbox").width() - 8;
+    if (notes_notebook_filter != null){
+        console.log("notes_notebook_filter != null");
+        width -= jQuery("#searchbox_notebook_filter").outerWidth() + 3;
+    }
+    if (notes_tag_filter != null){
+        width -= jQuery("#searchbox_tag_filter").outerWidth() + 3;
+    }
+    jQuery("#searchinput").css("width", width + "px");
 }
 
 jQuery(document).ready(function(){
@@ -174,6 +193,7 @@ jQuery(document).ready(function(){
         handles: "e",
         resize: function(event, ui){
             jQuery("#noteeditor_wrapper").css("left", jQuery("#leftbar").outerWidth() + jQuery("#noteslist_wrapper").outerWidth());
+            jQuery("#searchinput").css("width", (jQuery("#noteslist_wrapper").width() - 32) + "px");
         }
     });
     
@@ -203,4 +223,6 @@ jQuery(document).ready(function(){
         update_editor_height();
         update_noteslist_height();
     });
+    
+    resize_search_input();
 });
