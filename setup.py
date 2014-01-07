@@ -1,6 +1,6 @@
 #! /usr/bin/env python
-# setup.py
 # -*- Mode: Python; indent-tabs-mode: nil; tab-width: 4; coding: utf-8 -*-
+# setup.py
 #
 # Copyright © 2013-2014 Gwendal Le Bihan
 # 
