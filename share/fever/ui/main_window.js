@@ -241,7 +241,7 @@ jQuery(document).ready(function(){
                 if (tag){
                     var selected_tags = new Array();
                     jQuery("#note_tags_list").find("span.tag").each(function(index){
-                        selected_tags.push(jQuery(this).html());
+                        selected_tags.push(jQuery(this).text());
                     });
                     if (selected_tags.indexOf(tag) == -1){
                         push_note_tag(tag);
@@ -256,7 +256,7 @@ jQuery(document).ready(function(){
             source: function(request, response){
                 var selected_tags = new Array();
                 jQuery("#note_tags_list").find("span.tag").each(function(index){
-                    selected_tags.push(jQuery(this).html());
+                    selected_tags.push(jQuery(this).text());
                 });
                 var matches = jQuery.ui.autocomplete.filter(availableTags, request.term);
                 var res = new Array();
