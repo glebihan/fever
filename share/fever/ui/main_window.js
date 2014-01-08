@@ -29,6 +29,7 @@ function set_editing_note(note_data){
     editing_note_notebook_local_id = note_data.notebook_local_id;
     jQuery("#note_notebook_selector").val(note_data.notebook_local_id);
     
+    jQuery("#note_tags_selector").val("");
     jQuery("#note_tags_list").find("span.tag").remove();
     for (var i in note_data.tags_list){
         push_note_tag(note_data.tags_list[i]);
