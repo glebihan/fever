@@ -49,8 +49,6 @@ function update_notes_list(notes_list){
     if (editing_note_local_id){
         jQuery("#noteslist > a[href='#note_" + editing_note_local_id + "']").addClass("edited");
     }
-    
-    update_notes_filter();
 }
 
 function update_note_notebook(notebook_local_id){
@@ -102,7 +100,7 @@ function update_notes_filter(){
         jQuery("#searchbox_notebook_filter").toggle(false);
         jQuery("#searchbox_tag_filter").toggle(false);
         jQuery("#noteslist_wrapper > h3").html(jQuery("#notebookslist").tree("getNodeById", "-1").name);
-        jQuery("#noteslist > a").toggle(true);
+        
         resize_search_input();
     }else{
         jQuery("#noteslist_wrapper > h3").html(notes_notebook_filter.name);
@@ -114,14 +112,13 @@ function update_notes_filter(){
         }else{
             ids_list.push(notes_notebook_filter.id);
         }
-        jQuery("#noteslist > a").each(function(index){
-            jQuery(this).toggle(ids_list.indexOf(parseInt(jQuery(this).attr("notebook_local_id"))) != -1);
-        });
         
         jQuery("#searchbox_notebook_filter").find("span.value").html(notes_notebook_filter.name);
         resize_search_input();
         jQuery("#searchbox_notebook_filter").toggle(true);
     }
+    
+    alert("refresh_notes_search_results:" + (notes_notebook_filter ? (notes_notebook_filter.is_stack ? "stack_" : "") + notes_notebook_filter.id : "") + ":" + (notes_tag_filter ? notes_tag_filter.id : "") + ":" + jQuery("#searchinput").val());
 }
 
 function resize_search_input(){

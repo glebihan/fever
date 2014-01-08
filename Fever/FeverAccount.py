@@ -281,6 +281,10 @@ class FeverAccountDB(object):
             notebook_local_id = self._query("SELECT local_id FROM notebooks WHERE defaultNotebook=1")[0][0]
         self._query("INSERT INTO notes (title, dirty, content, notebook_local_id) VALUES (?, 1, ?, ?)", (_("New note"), "<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE en-note SYSTEM \"http://xml.evernote.com/pub/enml2.dtd\"><en-note></en-note>", notebook_local_id))
         return self._query("SELECT MAX(local_id) FROM notes")[0][0]
+    
+    def find_notebooks_by_stack(self, stack):
+        notebooks = self._query("SELECT * FROM notebooks WHERE stack=?", (stack,))
+        return [self._format_element("notebooks", n) for n in notebooks]
 
 class FeverAccount(EventsObject):
     def __init__(self, username):
@@ -302,6 +306,9 @@ class FeverAccount(EventsObject):
     
     def list_notebooks(self):
         return [notebook for notebook in self._account_data_db.list_elements("notebooks") if notebook["deleted"] == False]
+    
+    def find_notebooks_by_stack(self, stack):
+        return self._account_data_db.find_notebooks_by_stack(stack)
     
     def list_notes(self):
         return [note for note in self._account_data_db.list_elements("notes") if note["deleted"] == False]

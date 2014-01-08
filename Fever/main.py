@@ -124,6 +124,14 @@ class Application(object):
             stack = params[i+1:]
             self._account.update_notebook_stack(notebook_local_id, stack)
             self._refresh_display_notebooks()
+        elif command == "refresh_notes_search_results":
+            i = params.index(":")
+            notebook_filter = params[:i]
+            params = params[i+1:]
+            i = params.index(":")
+            tag_filter = params[:i]
+            keyword = params[i+1:]
+            self._refresh_display_notes(notebook_filter = notebook_filter, tag_filter = tag_filter, keyword = keyword)
             
         return True
     
@@ -224,9 +232,20 @@ class Application(object):
         
         self._refresh_display_notebooks()
         
+        self.send_command("update_notes_filter()")
+    
+    def _refresh_display_notes(self, **filters):
+        notebooks_filter = []
+        if "notebook_filter" in filters and filters["notebook_filter"] != "":
+            if filters["notebook_filter"].startswith("stack_"):
+                notebooks_filter = [notebook["local_id"] for notebook in self._account.find_notebooks_by_stack(filters["notebook_filter"][6:])]
+            else:
+                notebooks_filter = [int(filters["notebook_filter"])]
         notes_list = []
         for note in self._account.list_notes():
             if note["deleted"] == 0:
+                if len(notebooks_filter) > 0 and note["notebook_local_id"] not in notebooks_filter:
+                    continue
                 tree = libxml2.htmlParseDoc(note["content"], "utf-8")
                 document = HTMLNode(tree.getRootElement())
                 summary = document.getContent()[:100]
