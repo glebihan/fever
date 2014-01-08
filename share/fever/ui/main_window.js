@@ -2,6 +2,7 @@ var editing_note_local_id = null;
 var editing_note_notebook_local_id = null;
 var notes_notebook_filter = null;
 var notebooks_list_open_nodes = new Array();
+var tags_list_open_nodes = new Array();
 var notes_tag_filter = null;
 var availableTags = new Array();
 
@@ -75,6 +76,16 @@ function update_tags_list(tags_list){
     for (var i in tags_list){
         availableTags.push(tags_list[i].label);
     }
+    if (notes_tag_filter){
+        node = jQuery("#tagslist").tree("getNodeById", notes_tag_filter.id);
+        jQuery("#tagslist").tree('selectNode', node);
+    }
+    for (var i in tags_list_open_nodes){
+        node = jQuery("#tagslist").tree("getNodeById", tags_list_open_nodes[i]);
+        if (node){
+            jQuery("#tagslist").tree('openNode', node);
+        }
+    }
 }
 
 function update_notebooks_list(notebooks_list){
@@ -111,13 +122,19 @@ function update_noteslist_height(){
 function update_notes_filter(){
     if (notes_notebook_filter === null){
         jQuery("#searchbox_notebook_filter").toggle(false);
-        jQuery("#searchbox_tag_filter").toggle(false);
-        resize_search_input();
     }else{
         jQuery("#searchbox_notebook_filter").find("span.value").html(notes_notebook_filter.name);
-        resize_search_input();
         jQuery("#searchbox_notebook_filter").toggle(true);
     }
+    
+    if (notes_tag_filter === null){
+        jQuery("#searchbox_tag_filter").toggle(false);
+    }else{
+        jQuery("#searchbox_tag_filter").find("span.value").html(notes_tag_filter.name);
+        jQuery("#searchbox_tag_filter").toggle(true);
+    }
+    
+    resize_search_input();
     
     alert("refresh_notes_search_results:" + (notes_notebook_filter ? (notes_notebook_filter.is_stack ? "stack_" : "") + notes_notebook_filter.id : "") + ":" + (notes_tag_filter ? notes_tag_filter.id : "") + ":" + jQuery("#searchinput").val());
 }
@@ -143,6 +160,7 @@ function push_note_tag(tag){
     remove_link.click(function(event){
         alert("remove_note_tag:" + editing_note_local_id + ":" + jQuery(this).parent().text());
         jQuery(this).parent().remove();
+        update_notes_filter();
     });
 }
 
@@ -166,7 +184,8 @@ jQuery(document).ready(function(){
     jQuery("#notebookslist").bind('tree.select', function(event){
         if (event.node && event.node.id == -1){
             notes_notebook_filter = null;
-            notes_tags_filter = null;
+            notes_tag_filter = null;
+            jQuery("#tagslist").tree("selectNode", null);
         }else{
             notes_notebook_filter = event.node;
         }
@@ -191,6 +210,26 @@ jQuery(document).ready(function(){
     });
     jQuery("#tagslist").tree({
         data: []
+    });
+    jQuery("#tagslist").bind('tree.select', function(event){
+        if (event.node){
+            var notebooks_tree_selected_node = jQuery("#notebookslist").tree("getSelectedNode");
+            if (notebooks_tree_selected_node && notebooks_tree_selected_node.id == -1){
+                jQuery("#notebookslist").tree("selectNode", null);
+            }
+        }
+        notes_tag_filter = event.node;
+        update_notes_filter();
+    });
+    jQuery("#tagslist").bind('tree.open', function(event){
+        tags_list_open_nodes.push(event.node.id);
+    });
+    jQuery("#tagslist").bind('tree.close', function(event){
+        var i = tags_list_open_nodes.indexOf(event.node.id);
+        while (i != -1){
+            tags_list_open_nodes.splice(i, 1);
+            i = tags_list_open_nodes.indexOf(event.node.id);
+        }
     });
     jQuery("#leftbar").resizable({
         handles: "e",
@@ -249,6 +288,7 @@ jQuery(document).ready(function(){
                         jQuery(this).val("");
                         alert("add_note_tag:" + editing_note_local_id + ":" + tag);
                         jQuery(this).autocomplete("close");
+                        update_notes_filter();
                     }
                 }
             }
@@ -277,6 +317,7 @@ jQuery(document).ready(function(){
                 push_note_tag(ui.item.value);
                 jQuery(this).val("");
                 alert("add_note_tag:" + editing_note_local_id + ":" + ui.item.value);
+                update_notes_filter();
                 return false;
             }
         });

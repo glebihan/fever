@@ -269,10 +269,16 @@ class Application(object):
                 notebooks_filter = [notebook["local_id"] for notebook in self._account.find_notebooks_by_stack(filters["notebook_filter"][6:])]
             else:
                 notebooks_filter = [int(filters["notebook_filter"])]
+        if "tag_filter" in filters and filters["tag_filter"] != "":
+            tag_filter = int(filters["tag_filter"])
+        else:
+            tag_filter = None
         notes_list = []
         for note in self._account.list_notes():
             if note["deleted"] == 0:
                 if len(notebooks_filter) > 0 and note["notebook_local_id"] not in notebooks_filter:
+                    continue
+                if tag_filter != None and (note["tags_local_ids"] == "" or tag_filter not in [int(t) for t in note["tags_local_ids"].split(",")]):
                     continue
                 tree = libxml2.htmlParseDoc(note["content"], "utf-8")
                 document = HTMLNode(tree.getRootElement())
