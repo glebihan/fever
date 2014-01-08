@@ -1,12 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <requires lib="gtk+" version="2.16"/>
+  <requires lib="gtk+" version="2.24"/>
   <!-- interface-naming-policy toplevel-contextual -->
-  <object class="GtkAccelGroup" id="accelgroup1"/>
   <object class="GtkActionGroup" id="actiongroup1">
     <child>
-      <object class="GtkAction" id="new_note_action">
-        <property name="stock_id">gtk-new</property>
+      <object class="GtkAction" id="sync_action">
+        <property name="label" translatable="yes">Synchonise</property>
+        <property name="stock_id">gtk-refresh</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkAction" id="quit_action">
+        <property name="stock_id">gtk-quit</property>
       </object>
     </child>
     <child>
@@ -15,26 +20,15 @@
       </object>
     </child>
     <child>
-      <object class="GtkAction" id="quit_action">
-        <property name="stock_id">gtk-quit</property>
+      <object class="GtkAction" id="new_note_action">
+        <property name="stock_id">gtk-new</property>
       </object>
-      <accelerator key="q" modifiers="GDK_CONTROL_MASK"/>
-    </child>
-    <child>
-      <object class="GtkAction" id="sync_action">
-        <property name="label" translatable="yes">Synchonise</property>
-        <property name="stock_id">gtk-refresh</property>
-      </object>
-      <accelerator key="F5"/>
     </child>
   </object>
   <object class="GtkWindow" id="main_window">
     <property name="width_request">800</property>
     <property name="height_request">600</property>
     <property name="can_focus">False</property>
-    <accel-groups>
-      <group name="accelgroup1"/>
-    </accel-groups>
     <child>
       <object class="GtkVBox" id="box1">
         <property name="visible">True</property>
@@ -44,7 +38,7 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <child>
-              <object class="GtkMenuItem" id="menuitem1">
+              <object class="GtkMenuItem" id="file_menuitem">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="use_action_appearance">False</property>
@@ -63,7 +57,7 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkImageMenuItem" id="menuitem3">
+                      <object class="GtkImageMenuItem" id="sync_menuitem">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="related_action">sync_action</property>
@@ -91,7 +85,7 @@
               </object>
             </child>
             <child>
-              <object class="GtkMenuItem" id="menuitem2">
+              <object class="GtkMenuItem" id="edit_menuitem">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="use_action_appearance">False</property>
@@ -102,7 +96,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <child>
-                      <object class="GtkImageMenuItem" id="imagemenuitem9">
+                      <object class="GtkImageMenuItem" id="preferences_menuitem">
                         <property name="label">gtk-preferences</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
@@ -116,7 +110,7 @@
               </object>
             </child>
             <child>
-              <object class="GtkMenuItem" id="menuitem4">
+              <object class="GtkMenuItem" id="help_menuitem">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="use_action_appearance">False</property>
@@ -127,7 +121,7 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <child>
-                      <object class="GtkImageMenuItem" id="imagemenuitem10">
+                      <object class="GtkImageMenuItem" id="about_menuitem">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="related_action">about_action</property>
@@ -174,29 +168,5 @@
         </child>
       </object>
     </child>
-  </object>
-  <object class="GtkListStore" id="notebooks_liststore">
-    <columns>
-      <!-- column-name notebook_local_id -->
-      <column type="gint"/>
-      <!-- column-name notebook_name -->
-      <column type="gchararray"/>
-    </columns>
-  </object>
-  <object class="GtkListStore" id="notes_liststore">
-    <columns>
-      <!-- column-name note_local_id -->
-      <column type="gint"/>
-      <!-- column-name note_title -->
-      <column type="gchararray"/>
-    </columns>
-  </object>
-  <object class="GtkListStore" id="tags_liststore">
-    <columns>
-      <!-- column-name tag_local_id -->
-      <column type="gint"/>
-      <!-- column-name tag_name -->
-      <column type="gchararray"/>
-    </columns>
   </object>
 </interface>

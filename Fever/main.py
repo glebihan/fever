@@ -70,9 +70,16 @@ class Application(object):
         builder.get_object("about_action").connect("activate", self._on_about_clicked)
         builder.get_object("new_note_action").connect("activate", self._on_new_note_clicked)
         
+        self._localize_ui(builder)
+        
         self._window.maximize()
         
         self._about_dialog = AboutDialog.AboutDialog(self._window)
+    
+    def _localize_ui(self, builder):
+        builder.get_object("file_menuitem").set_label(_("_File"))
+        builder.get_object("edit_menuitem").set_label(_("_Edit"))
+        builder.get_object("help_menuitem").set_label(_("_Help"))
     
     def _on_webview_load_finished(self, webview, frame):
         if frame == webview.get_main_frame():
