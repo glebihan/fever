@@ -248,6 +248,7 @@ jQuery(document).ready(function(){
                         push_note_tag(tag);
                         jQuery(this).val("");
                         alert("add_note_tag:" + editing_note_local_id + ":" + tag);
+                        jQuery(this).autocomplete("close");
                     }
                 }
             }
