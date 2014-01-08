@@ -71,6 +71,7 @@ DB_STRUCTURE = {
         {"field_name": "updateSequenceNum", "type": "NUMERIC", "no_upload": True, "no_download": False},
         {"field_name": "notebook_local_id", "type": "NUMERIC", "no_upload": True, "no_download": False},
         {"field_name": "notebookGuid", "type": "TEXT", "no_upload": False, "no_download": False},
+        {"field_name": "tags_local_ids", "type": "TEXT", "no_upload": True, "no_download": False},
         {"field_name": "tagGuids", "type": "TEXT", "no_upload": False, "no_download": False},
         {"field_name": "dirty", "type": "NUMERIC DEFAULT 0", "no_upload": True, "no_download": True},
         {"field_name": "deleted", "type": "NUMERIC DEFAULT 0", "no_upload": True, "no_download": True}

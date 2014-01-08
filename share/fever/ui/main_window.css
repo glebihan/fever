@@ -123,11 +123,6 @@ body{
     font-size: 10px;
 }
 
-#searchinput{
-    border: none;
-    outline: none;
-}
-
 #searchbox_notebook_filter, #searchbox_tag_filter{
     background-color: #BBBBBB;
     -webkit-border-radius: 3px;
@@ -137,10 +132,58 @@ body{
     display: none;
 }
 
+#searchinput{
+    border: none;
+    outline: none;
+}
+
+#note_tags_list span.tag{
+    font-size: 10px;
+    background-color: #BBBBBB;
+    padding: 3px;
+    height: 20px;
+    border-right: #EAEDEF solid 1px;
+}
+
+#note_tags_selector{
+    padding: 0;
+    margin: 0;
+    border: none;
+    outline: none;
+    background-color: #BBBBBB;
+    width: 50px;
+    height: 19px;
+    font-size: 10px;
+}
+
+#note_tags_list :first-child{
+    -webkit-border-top-left-radius: 6px;
+    -webkit-border-bottom-left-radius: 6px;
+    -moz-border-radius-topleft: 6px;
+    -moz-border-radius-bottomleft: 6px;
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
+}
+
+#note_tags_list :last-child{
+    -webkit-border-top-right-radius: 6px;
+    -webkit-border-bottom-right-radius: 6px;
+    -moz-border-radius-topright: 6px;
+    -moz-border-radius-bottomright: 6px;
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+
+#note_tags_list #note_tags_selector:first-child{
+    -webkit-border-radius: 6px;
+    -moz-border-radius: 6px;
+    border-radius: 6px;
+}
+
 #searchbox_notebook_filter a.delete, #searchbox_tag_filter a.delete{
     margin-left: 3px;
 }
 
-#searchbox_notebook_filter a.delete img, #searchbox_tag_filter a.delete img{
+#searchbox_notebook_filter a.delete img, #searchbox_tag_filter a.delete img, #note_tags_list span.tag a img{
     vertical-align: middle;
 }

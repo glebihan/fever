@@ -285,6 +285,11 @@ class FeverAccountDB(object):
     def find_notebooks_by_stack(self, stack):
         notebooks = self._query("SELECT * FROM notebooks WHERE stack=?", (stack,))
         return [self._format_element("notebooks", n) for n in notebooks]
+    
+    def create_new_tag(self, tag_name):
+        self._query("INSERT INTO tags (name, dirty) VALUES (?, 1)", (tag_name,))
+        tag_local_id = self._query("SELECT MAX(local_id) FROM tags")[0][0]
+        return self.lookup_element_by_local_id("tags", tag_local_id)
 
 class FeverAccount(EventsObject):
     def __init__(self, username):
@@ -310,6 +315,15 @@ class FeverAccount(EventsObject):
     def find_notebooks_by_stack(self, stack):
         return self._account_data_db.find_notebooks_by_stack(stack)
     
+    def find_tag_by_local_id(self, tag_local_id):
+        return self._account_data_db.lookup_element_by_local_id("tags", tag_local_id)
+    
+    def find_tag_by_name(self, tag_name):
+        return self._account_data_db.lookup_element_by_name("tags", tag_name)
+    
+    def create_new_tag(self, tag_name):
+        return self._account_data_db.create_new_tag(tag_name)
+    
     def list_notes(self):
         return [note for note in self._account_data_db.list_elements("notes") if note["deleted"] == False]
     
@@ -328,6 +342,28 @@ class FeverAccount(EventsObject):
     
     def update_notebook_stack(self, notebook_local_id, stack):
         self._account_data_db.update_element_field("notebooks", "stack", notebook_local_id, stack)
+    
+    def add_note_tag(self, note_local_id, tag):
+        note = self._account_data_db.lookup_element_by_local_id("notes", note_local_id)
+        if note["tags_local_ids"]:
+            tags_local_ids = [int(tag_local_id) for tag_local_id in note["tags_local_ids"].split(",")]
+        else:
+            tags_local_ids = []
+        tags_local_ids += [tag["local_id"]]
+        self._account_data_db.update_element_field("notes", "tags_local_ids", note_local_id, ",".join([str(t) for t in tags_local_ids]))
+        self._account_data_db.update_element_field("notes", "tagGuids", note_local_id, "-1")
+    
+    def remove_note_tag(self, note_local_id, tag):
+        note = self._account_data_db.lookup_element_by_local_id("notes", note_local_id)
+        if note["tags_local_ids"]:
+            tags_local_ids = [int(tag_local_id) for tag_local_id in note["tags_local_ids"].split(",")]
+        else:
+            tags_local_ids = []
+        if tag["local_id"] in tags_local_ids:
+            i = tags_local_ids.index(tag["local_id"])
+            del tags_local_ids[i]
+        self._account_data_db.update_element_field("notes", "tags_local_ids", note_local_id, ",".join([str(t) for t in tags_local_ids]))
+        self._account_data_db.update_element_field("notes", "tagGuids", note_local_id, "-1")
     
     def create_new_note(self, notebook_local_id = None):
         return self._account_data_db.create_new_note(notebook_local_id)
@@ -459,6 +495,11 @@ class FeverAccount(EventsObject):
                                 if server_element.contentHash != client_element["contentHash"]:
                                     server_element.content = noteStore.getNoteContent(server_element.guid)
                                 server_element.notebook_local_id = self._account_data_db.lookup_element_by_guid("notebooks", server_element.notebookGuid)["local_id"]
+                                tags_local_ids = []
+                                if server_element.tagGuids:
+                                    for tagGuid in server_element.tagGuids:
+                                        tags_local_ids.append(str(self._account_data_db.lookup_element_by_guid("tags", tagGuid)["local_id"]))
+                                server_element.tags_local_ids = ",".join(tags_local_ids)
                             elif element_type == "resources":
                                 server_element.bodyHash = binascii.b2a_hex(server_element.data.bodyHash)
                                 if server_element.data.bodyHash != binascii.b2a_hex(server_element.data.bodyHash):
@@ -490,6 +531,11 @@ class FeverAccount(EventsObject):
                             if element_type == "notes":
                                 server_element.content = noteStore.getNoteContent(server_element.guid)
                                 server_element.notebook_local_id = self._account_data_db.lookup_element_by_guid("notebooks", server_element.notebookGuid)["local_id"]
+                                tags_local_ids = []
+                                if server_element.tagGuids:
+                                    for tagGuid in server_element.tagGuids:
+                                        tags_local_ids.append(str(self._account_data_db.lookup_element_by_guid("tags", tagGuid)["local_id"]))
+                                server_element.tags_local_ids = ",".join(tags_local_ids)
                             elif element_type == "resources":
                                 server_element.bodyHash = binascii.b2a_hex(server_element.data.bodyHash)
                                 server_element.data = noteStore.getResourceData(server_element.guid)
@@ -520,8 +566,17 @@ class FeverAccount(EventsObject):
                             if element_type == "notes" and client_element["notebookGuid"] == "":
                                 # Note was moved to a different notebook
                                 client_element["notebookGuid"] = self._account_data_db.lookup_element_by_local_id("notebooks", client_element["notebook_local_id"])["guid"]
+                            if element_type == "notes" and client_element["tagGuids"] == "-1":
+                                # Tags were changed
+                                tagGuids = []
+                                if client_element["tags_local_ids"]:
+                                    for tag_local_id in client_element["tags_local_ids"].split(","):
+                                        tagGuids.append(self._account_data_db.lookup_element_by_local_id("tags", int(tag_local_id))["guid"])
+                                client_element["tagGuids"] = ",".join(tagGuids)
                             if field in ["parentGuid", "stack"] and client_element[field] == "":
                                 value = None
+                            elif field in ["tagGuids"] and client_element[field] != "":
+                                value = client_element[field].split(",")
                             else:
                                 value = client_element[field]
                             setattr(server_element, field, value)
@@ -536,6 +591,11 @@ class FeverAccount(EventsObject):
                             new_server_element = noteStore.updateNote(server_element)
                             updateSequenceNum = new_server_element.updateSequenceNum
                             new_server_element.notebook_local_id = client_element["notebook_local_id"]
+                            tags_local_ids = []
+                            if new_server_element.tagGuids:
+                                for tagGuid in new_server_element.tagGuids:
+                                    tags_local_ids.append(str(self._account_data_db.lookup_element_by_guid("tags", tagGuid)["local_id"]))
+                            new_server_element.tags_local_ids = ",".join(tags_local_ids)
                         if updateSequenceNum == self.lastUpdateCount + 1:
                             self.lastUpdateCount = updateSequenceNum
                         else:
@@ -549,6 +609,11 @@ class FeverAccount(EventsObject):
                         elif element_type == "notes":
                             server_element = noteStore.createNote(EvernoteTypes.Note(title = client_element["title"], content = client_element["content"]))
                             server_element.notebook_local_id = client_element["notebook_local_id"]
+                            tags_local_ids = []
+                            if server_element.tagGuids:
+                                for tagGuid in server_element.tagGuids:
+                                    tags_local_ids.append(str(self._account_data_db.lookup_element_by_guid("tags", tagGuid)["local_id"]))
+                            server_element.tags_local_ids = ",".join(tags_local_ids)
                         self._account_data_db.update_element_from_server(element_type, client_element["local_id"], server_element)
             
             if need_incremental_sync:

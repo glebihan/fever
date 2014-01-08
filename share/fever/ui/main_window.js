@@ -3,6 +3,7 @@ var editing_note_notebook_local_id = null;
 var notes_notebook_filter = null;
 var notebooks_list_open_nodes = new Array();
 var notes_tag_filter = null;
+var availableTags = new Array();
 
 function _(string){
     return string;
@@ -27,9 +28,16 @@ function set_editing_note(note_data){
     editing_note_local_id = note_data.local_id;
     editing_note_notebook_local_id = note_data.notebook_local_id;
     jQuery("#note_notebook_selector").val(note_data.notebook_local_id);
+    
+    jQuery("#note_tags_list").find("span.tag").remove();
+    for (var i in note_data.tags_list){
+        push_note_tag(note_data.tags_list[i]);
+    }
+    
     jQuery("#noteeditor_wrapper").toggle(true);
     jQuery("#noteslist > a.edited").removeClass("edited");
     jQuery("#noteslist > a[href='#note_" + editing_note_local_id + "']").addClass("edited");
+    
     update_editor_height();
 }
 
@@ -62,6 +70,10 @@ function update_note_notebook(notebook_local_id){
 
 function update_tags_list(tags_list){
     jQuery("#tagslist").tree("loadData", tags_list);
+    availableTags = new Array();
+    for (var i in tags_list){
+        availableTags.push(tags_list[i].label);
+    }
 }
 
 function update_notebooks_list(notebooks_list){
@@ -119,6 +131,18 @@ function resize_search_input(){
         width -= jQuery("#searchbox_tag_filter").outerWidth() + 3;
     }
     jQuery("#searchinput").css("width", width + "px");
+}
+
+function push_note_tag(tag){
+    var tag_node = jQuery("<span class='tag'></span>");
+    tag_node.html(tag);
+    var remove_link = jQuery("<a href='#'><img src='icons/12x12/delete.png'/></a>");
+    tag_node.append(remove_link);
+    tag_node.insertBefore("#note_tags_selector");
+    remove_link.click(function(event){
+        alert("remove_note_tag:" + editing_note_local_id + ":" + jQuery(this).parent().text());
+        jQuery(this).parent().remove();
+    });
 }
 
 jQuery(document).ready(function(){
@@ -203,6 +227,57 @@ jQuery(document).ready(function(){
     jQuery("#note_title").change(function(event){
         alert("set_note_title:" + editing_note_local_id + ":" + jQuery("#note_title").val());
     });
+ 
+    jQuery("#note_tags_selector")
+        // don't navigate away from the field on tab when selecting an item
+        .bind("keydown", function(event){
+            if (event.keyCode === jQuery.ui.keyCode.TAB && jQuery(this).data("ui-autocomplete").menu.active){
+                event.preventDefault();
+            }
+        })
+        .bind("keypress", function(event){
+            if (event.keyCode === jQuery.ui.keyCode.ENTER){
+                var tag = jQuery(this).val();
+                if (tag){
+                    var selected_tags = new Array();
+                    jQuery("#note_tags_list").find("span.tag").each(function(index){
+                        selected_tags.push(jQuery(this).html());
+                    });
+                    if (selected_tags.indexOf(tag) == -1){
+                        push_note_tag(tag);
+                        jQuery(this).val("");
+                        alert("add_note_tag:" + editing_note_local_id + ":" + tag);
+                    }
+                }
+            }
+        })
+        .autocomplete({
+            minLength: 1,
+            source: function(request, response){
+                var selected_tags = new Array();
+                jQuery("#note_tags_list").find("span.tag").each(function(index){
+                    selected_tags.push(jQuery(this).html());
+                });
+                var matches = jQuery.ui.autocomplete.filter(availableTags, request.term);
+                var res = new Array();
+                for (var i in matches){
+                    if (selected_tags.indexOf(matches[i]) == -1){
+                        res.push(matches[i]);
+                    }
+                }
+                response(res);
+            },
+            focus: function(){
+                // prevent value inserted on focus
+                return false;
+            },
+            select: function(event, ui){
+                push_note_tag(ui.item.value);
+                jQuery(this).val("");
+                alert("add_note_tag:" + editing_note_local_id + ":" + ui.item.value);
+                return false;
+            }
+        });
     
     jQuery(window).resize(function(event){
         update_editor_height();

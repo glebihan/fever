@@ -132,6 +132,20 @@ class Application(object):
             tag_filter = params[:i]
             keyword = params[i+1:]
             self._refresh_display_notes(notebook_filter = notebook_filter, tag_filter = tag_filter, keyword = keyword)
+        elif command == "add_note_tag":
+            i = params.index(":")
+            note_local_id = int(params[:i])
+            tag = self._account.find_tag_by_name(params[i+1:])
+            if not tag:
+                tag = self._account.create_new_tag(params[i+1:])
+                self._refresh_display_tags()
+            self._account.add_note_tag(note_local_id, tag)
+        elif command == "remove_note_tag":
+            i = params.index(":")
+            note_local_id = int(params[:i])
+            tag = self._account.find_tag_by_name(params[i+1:])
+            if tag:
+                self._account.remove_note_tag(note_local_id, tag)
             
         return True
     
@@ -145,11 +159,16 @@ class Application(object):
             new_img.newProp("src", "data:%s;base64,%s" % (resource['mime'], binascii.b2a_base64(resource['data'])))
             new_img.newProp("hash", img.prop("hash"))
             img.replaceNode(new_img)
+        if note["tags_local_ids"]:
+            tags_list = [self._account.find_tag_by_local_id(int(local_id))["name"] for local_id in note["tags_local_ids"].split(",")]
+        else:
+            tags_list = []
         note_data = {
             "local_id": note_local_id,
             "notebook_local_id": note["notebook_local_id"],
             "title": self._htmlentities_encode(note['title']),
-            "contents": str(document)
+            "contents": str(document),
+            "tags_list": tags_list
         }
         self.send_command("set_editing_note(%s)" % json.dumps(note_data))
     
@@ -221,18 +240,20 @@ class Application(object):
         
         if not self._account:
             return
-            
+        
+        self._refresh_display_tags()
+        self._refresh_display_notebooks()
+        
+        self.send_command("update_notes_filter()")
+    
+    def _refresh_display_tags(self):
         tags_list = self._account.list_tags()
         tags_list.sort(lambda a,b: cmp(a["name"].lower(), b["name"].lower()))
         client_tags_list = []
         for tag in tags_list:
             if tag["deleted"] == 0:
-                client_tags_list.append({"label": tag["name"]})
+                client_tags_list.append({"label": tag["name"], "id": tag["local_id"]})
         self.send_command("update_tags_list(%s)" % json.dumps(client_tags_list))
-        
-        self._refresh_display_notebooks()
-        
-        self.send_command("update_notes_filter()")
     
     def _refresh_display_notes(self, **filters):
         notebooks_filter = []
