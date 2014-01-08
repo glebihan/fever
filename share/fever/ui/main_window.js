@@ -99,20 +99,8 @@ function update_notes_filter(){
     if (notes_notebook_filter === null){
         jQuery("#searchbox_notebook_filter").toggle(false);
         jQuery("#searchbox_tag_filter").toggle(false);
-        jQuery("#noteslist_wrapper > h3").html(jQuery("#notebookslist").tree("getNodeById", "-1").name);
-        
         resize_search_input();
     }else{
-        jQuery("#noteslist_wrapper > h3").html(notes_notebook_filter.name);
-        var ids_list = new Array();
-        if (notes_notebook_filter.children && notes_notebook_filter.is_stack > 0){
-            for (var i in notes_notebook_filter.children){
-                ids_list.push(notes_notebook_filter.children[i].id);
-            }
-        }else{
-            ids_list.push(notes_notebook_filter.id);
-        }
-        
         jQuery("#searchbox_notebook_filter").find("span.value").html(notes_notebook_filter.name);
         resize_search_input();
         jQuery("#searchbox_notebook_filter").toggle(true);
