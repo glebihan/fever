@@ -561,25 +561,32 @@ class FeverAccount(EventsObject):
             
             for element_type in ELEMENTS_TYPES:
                 for server_element, client_element in elements_to_upload[element_type]:
+                    if not client_element["updateSequenceNum"]:
+                        if element_type == "tags":
+                            server_element = EvernoteTypes.Tag()
+                        elif element_type == "notebooks":
+                            server_element = EvernoteTypes.Notebook()
+                        elif element_type == "notes":
+                            server_element = EvernoteTypes.Note()
+                    for field in [f["field_name"] for f in DB_STRUCTURE[element_type] if f["no_upload"] == False]:
+                        if element_type == "notes" and client_element["notebookGuid"] == "":
+                            # Note was moved to a different notebook
+                            client_element["notebookGuid"] = self._account_data_db.lookup_element_by_local_id("notebooks", client_element["notebook_local_id"])["guid"]
+                        if element_type == "notes" and client_element["tagGuids"] == "-1":
+                            # Tags were changed
+                            tagGuids = []
+                            if client_element["tags_local_ids"]:
+                                for tag_local_id in client_element["tags_local_ids"].split(","):
+                                    tagGuids.append(self._account_data_db.lookup_element_by_local_id("tags", int(tag_local_id))["guid"])
+                            client_element["tagGuids"] = ",".join(tagGuids)
+                        if field in ["parentGuid", "stack"] and client_element[field] == "":
+                            value = None
+                        elif field in ["tagGuids"] and client_element[field] != "" and client_element[field] != None:
+                            value = client_element[field].split(",")
+                        else:
+                            value = client_element[field]
+                        setattr(server_element, field, value)
                     if client_element["updateSequenceNum"]:
-                        for field in [f["field_name"] for f in DB_STRUCTURE[element_type] if f["no_upload"] == False]:
-                            if element_type == "notes" and client_element["notebookGuid"] == "":
-                                # Note was moved to a different notebook
-                                client_element["notebookGuid"] = self._account_data_db.lookup_element_by_local_id("notebooks", client_element["notebook_local_id"])["guid"]
-                            if element_type == "notes" and client_element["tagGuids"] == "-1":
-                                # Tags were changed
-                                tagGuids = []
-                                if client_element["tags_local_ids"]:
-                                    for tag_local_id in client_element["tags_local_ids"].split(","):
-                                        tagGuids.append(self._account_data_db.lookup_element_by_local_id("tags", int(tag_local_id))["guid"])
-                                client_element["tagGuids"] = ",".join(tagGuids)
-                            if field in ["parentGuid", "stack"] and client_element[field] == "":
-                                value = None
-                            elif field in ["tagGuids"] and client_element[field] != "":
-                                value = client_element[field].split(",")
-                            else:
-                                value = client_element[field]
-                            setattr(server_element, field, value)
                         if element_type == "tags":
                             updateSequenceNum = noteStore.updateTag(server_element)
                             new_server_element = noteStore.getTag(client_element["guid"])
@@ -603,11 +610,11 @@ class FeverAccount(EventsObject):
                         self._account_data_db.update_element_from_server(element_type, client_element["local_id"], new_server_element)
                     else:
                         if element_type == "tags":
-                            server_element = noteStore.createTag(EvernoteTypes.Tag(name = client_element["name"]))
+                            server_element = noteStore.createTag(server_element)
                         elif element_type == "notebooks":
-                            server_element = noteStore.createNotebook(EvernoteTypes.Notebook(name = client_element["name"]))
+                            server_element = noteStore.createNotebook(server_element)
                         elif element_type == "notes":
-                            server_element = noteStore.createNote(EvernoteTypes.Note(title = client_element["title"], content = client_element["content"]))
+                            server_element = noteStore.createNote(server_element)
                             server_element.notebook_local_id = client_element["notebook_local_id"]
                             tags_local_ids = []
                             if server_element.tagGuids:
