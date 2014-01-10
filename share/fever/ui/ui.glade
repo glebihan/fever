@@ -4,14 +4,8 @@
   <!-- interface-naming-policy toplevel-contextual -->
   <object class="GtkActionGroup" id="actiongroup1">
     <child>
-      <object class="GtkAction" id="sync_action">
-        <property name="label" translatable="yes">Synchonise</property>
-        <property name="stock_id">gtk-refresh</property>
-      </object>
-    </child>
-    <child>
-      <object class="GtkAction" id="quit_action">
-        <property name="stock_id">gtk-quit</property>
+      <object class="GtkAction" id="new_note_action">
+        <property name="stock_id">gtk-new</property>
       </object>
     </child>
     <child>
@@ -20,8 +14,14 @@
       </object>
     </child>
     <child>
-      <object class="GtkAction" id="new_note_action">
-        <property name="stock_id">gtk-new</property>
+      <object class="GtkAction" id="quit_action">
+        <property name="stock_id">gtk-quit</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkAction" id="sync_action">
+        <property name="label" translatable="yes">Synchonise</property>
+        <property name="stock_id">gtk-refresh</property>
       </object>
     </child>
   </object>
@@ -53,6 +53,7 @@
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="related_action">new_note_action</property>
+                        <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                       </object>
                     </child>

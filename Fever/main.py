@@ -80,6 +80,7 @@ class Application(object):
         builder.get_object("file_menuitem").set_label(_("_File"))
         builder.get_object("edit_menuitem").set_label(_("_Edit"))
         builder.get_object("help_menuitem").set_label(_("_Help"))
+        builder.get_object("new_note_action").set_label(_("_New note"))
     
     def _on_webview_load_finished(self, webview, frame):
         if frame == webview.get_main_frame():
