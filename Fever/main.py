@@ -54,6 +54,7 @@ class Application(object):
         self._webview = webkit.WebView()
         builder.get_object("webview_container").add(self._webview)
         self._webview.get_settings().set_property('enable-file-access-from-file-uris', 1)
+        self._webview.get_settings().set_property('enable-default-context-menu', 0)
         
         self._webview_load_finished = False
         self._webview_pending_commands = []
