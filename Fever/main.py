@@ -59,6 +59,7 @@ class Application(object):
         self._webview_pending_commands = []
         self._webview.connect("load-finished", self._on_webview_load_finished)
         self._webview.connect("script-alert", self._on_webview_script_alert)
+        self._webview.connect("drag-drop", self._on_webview_drag_drop)
         
         self._webview.load_uri(urlparse.urljoin('file:', urllib.pathname2url(os.path.join(self.cli_options.share_dir, "fever", "ui", "main_window.html"))))
         
@@ -81,6 +82,9 @@ class Application(object):
         builder.get_object("edit_menuitem").set_label(_("_Edit"))
         builder.get_object("help_menuitem").set_label(_("_Help"))
         builder.get_object("new_note_action").set_label(_("_New note"))
+    
+    def _on_webview_drag_drop(self, webview, drag_context, x, y, timestamp):
+        return True
     
     def _on_webview_load_finished(self, webview, frame):
         if frame == webview.get_main_frame():
