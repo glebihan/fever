@@ -159,7 +159,7 @@ class Application(object):
     
     def edit_note(self, note_local_id):
         note = self._account.get_note(note_local_id)
-        tree = libxml2.htmlParseDoc(note["content"], "utf-8")
+        tree = libxml2.parseDoc(note["content"])
         document = HTMLNode(tree.getRootElement())
         for img in document.find("en-media"):
             resource = self._account.get_resource_by_hash(img.prop("hash"))
@@ -281,7 +281,7 @@ class Application(object):
         notes_list = []
         for note in self._account.search_notes(notebooks = notebooks_filter, tag = tag_filter, keyword = keyword):
             if note["deleted"] == 0:
-                tree = libxml2.htmlParseDoc(note["content"], "utf-8")
+                tree = libxml2.parseDoc(note["content"])
                 document = HTMLNode(tree.getRootElement())
                 summary = document.getContent()[:100]
                 notes_list.append({
