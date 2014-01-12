@@ -75,7 +75,8 @@
                     </div>
                     
                     <h3>_(Created)</h3>
-                    <div id="search_filters_created">Since : )</label><input class="date_input" id="filter_created_after"/>
+                    <div id="search_filters_created">
+                        <label for="filter_created_after">_(Since : )</label><input class="date_input" id="filter_created_after"/>
                         <br/>
                         <label for="filter_created_before">_(Before : )</label><input class="date_input" id="filter_created_before"/>
                     </div>
@@ -88,7 +89,18 @@
                     </div>
                 </div>
             </div>
-            <div id="noteslist"><a href="#">test</a></div>
+            <div id="noteslist"></div>
+            <div id="noteslist_order_wrapper">
+                <a href="#" id="noteslist_order_menu_button" onclick="open_order_by_menu(); event.stopPropagation(); return false;">_(Order by)</a>
+                <ul id="noteslist_order_menu">
+                    <li><a href="#date_created_desc">_(Date created (newest first))</a></li>
+                    <li><a href="#date_created_asc">_(Date created (oldest first))</a></li>
+                    <li><a href="#date_modified_desc">_(Date modified (newest first))</a></li>
+                    <li><a href="#date_modified_asc">_(Date modified (oldest first))</a></li>
+                    <li><a href="#title_asc">_(Title (ascending))</a></li>
+                    <li><a href="#title_desc">_(Title (descending))</a></li>
+                </ul>
+            </div>
         </div>
         
         <div id="noteeditor_wrapper">

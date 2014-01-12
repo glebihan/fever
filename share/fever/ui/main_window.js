@@ -7,6 +7,7 @@ var notes_tag_filter = null;
 var availableTags = new Array();
 var search_filters_animation_running = false;
 var search_filters_next_state = null;
+var notes_sort_order = "date_created_desc";
 
 function _(string){
     return string;
@@ -118,7 +119,7 @@ function update_editor_height(){
 }
 
 function update_noteslist_height(){
-    jQuery("#noteslist").css("height", (jQuery("#noteslist_wrapper").height() - jQuery("#noteslist").offset().top) + "px");
+    jQuery("#noteslist").css("height", (jQuery("#noteslist_wrapper").height() - jQuery("#noteslist_order_wrapper").outerHeight() - jQuery("#noteslist").offset().top) + "px");
 }
 
 function clear_notebook_filter(){
@@ -159,7 +160,8 @@ function update_notes_filter(){
     var search_filters = {
         "notebook_filter": (notes_notebook_filter ? (notes_notebook_filter.is_stack ? "stack_" : "") + notes_notebook_filter.id : ""),
         "tag_filter": (notes_tag_filter ? notes_tag_filter.id : ""),
-        "keyword": jQuery("#searchinput").val()
+        "keyword": jQuery("#searchinput").val(),
+        "sort_order": notes_sort_order
     }
     
     var date_keys = ["created_after", "created_before", "modified_after", "modified_before"];
@@ -209,6 +211,10 @@ function apply_search_filters_state(){
             }
         });
     }
+}
+
+function open_order_by_menu(){
+    jQuery("#noteslist_order_menu").slideToggle();
 }
 
 jQuery(document).ready(function(){
@@ -296,6 +302,7 @@ jQuery(document).ready(function(){
             jQuery("#noteeditor_wrapper").css("left", jQuery("#leftbar").outerWidth() + jQuery("#noteslist_wrapper").outerWidth());
             jQuery("#searchbox").css("width", (jQuery("#noteslist_wrapper").width() - 32) + "px");
             jQuery("#search_filters").css("width", (jQuery("#noteslist_wrapper").width() - 10) + "px");
+            jQuery("#noteslist_order_wrapper").css("width", (jQuery("#noteslist_wrapper").width() - 10) + "px");
             resize_search_input();
         }
     });
@@ -429,6 +436,20 @@ jQuery(document).ready(function(){
             jQuery("#searchbox_" + key + "_filter").toggle(false);
         }
         update_notes_filter();
+    });
+    
+    jQuery("#noteslist_order_menu_button").button();
+    jQuery("#noteslist_order_menu").menu({
+        select: function(event, ui){
+            notes_sort_order = jQuery(ui.item).find("a").attr("href").substring(1);
+            update_notes_filter();
+            jQuery("#noteslist_order_menu").slideToggle();
+        }
+    });
+    jQuery("#noteslist_order_wrapper").focusout(function(event){
+        if (jQuery("#noteslist_order_menu").is(":visible")){
+            jQuery("#noteslist_order_menu").slideToggle();
+        }
     });
     
     jQuery(window).resize(function(event){

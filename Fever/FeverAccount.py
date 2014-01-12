@@ -321,6 +321,20 @@ class FeverAccountDB(object):
             query_str += " AND updated <= ?"
             query_params += (int(filters["modified_before"]),)
         
+        sort_orders_map = {
+            "date_created_desc": "created DESC",
+            "date_created_asc": "created ASC",
+            "date_modified_desc": "updated DESC",
+            "date_modified_asc": "updated ASC",
+            "title_asc": "title ASC",
+            "title_desc": "title DESC"
+        }
+        if "sort_order" in filters and filters["sort_order"] in sort_orders_map:
+            sort = sort_orders_map[filters["sort_order"]]
+        else:
+            sort = "created DESC"
+        query_str += " ORDER BY " + sort
+        
         elements = self._query(query_str, query_params)
         res = []
         for element in elements:
