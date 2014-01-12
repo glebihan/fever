@@ -290,6 +290,26 @@ class FeverAccountDB(object):
         self._query("INSERT INTO tags (name, dirty) VALUES (?, 1)", (tag_name,))
         tag_local_id = self._query("SELECT MAX(local_id) FROM tags")[0][0]
         return self.lookup_element_by_local_id("tags", tag_local_id)
+    
+    def search_notes(self, **filters):
+        query_str = "SELECT * FROM notes WHERE 1"
+        query_params = ()
+        if "notebooks" in filters and filters["notebooks"]:
+            query_str += " AND notebook_local_id IN (" + ",".join([str(n) for n in filters["notebooks"]]) + ")"
+        if "tag" in filters and filters["tag"]:
+            query_str += " AND (tags_local_ids LIKE ? OR tags_local_ids LIKE ? OR tags_local_ids LIKE ? OR tags_local_ids = ?)"
+            query_params += (str(filters["tag"]) + ",%", "%," + str(filters["tag"]) + ",%" , "%," + str(filters["tag"]), str(filters["tag"]))
+        if "keyword" in filters and filters["keyword"]:
+            words = filters["keyword"].rstrip().lstrip().split()
+            for word in words:
+                query_str += " AND (title LIKE ? OR content LIKE ?)"
+                query_params += ("%" + word + "%", "%" + word + "%")
+        
+        elements = self._query(query_str, query_params)
+        res = []
+        for element in elements:
+            res.append(self._format_element("notes", element))
+        return res
 
 class FeverAccount(EventsObject):
     def __init__(self, username):
@@ -326,6 +346,9 @@ class FeverAccount(EventsObject):
     
     def list_notes(self):
         return [note for note in self._account_data_db.list_elements("notes") if note["deleted"] == False]
+    
+    def search_notes(self, **filters):
+        return self._account_data_db.search_notes(**filters)
     
     def get_note(self, note_local_id):
         return self._account_data_db.get_element("notes", note_local_id)

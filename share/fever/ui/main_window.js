@@ -231,6 +231,13 @@ jQuery(document).ready(function(){
             i = tags_list_open_nodes.indexOf(event.node.id);
         }
     });
+    
+    jQuery("#searchinput").keypress(function(event){
+        if (event.keyCode === jQuery.ui.keyCode.ENTER){
+            update_notes_filter();
+        }
+    });
+    
     jQuery("#leftbar").resizable({
         handles: "e",
         resize: function(event, ui){

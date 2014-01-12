@@ -274,13 +274,13 @@ class Application(object):
             tag_filter = int(filters["tag_filter"])
         else:
             tag_filter = None
+        if "keyword" in filters and filters["keyword"] != "":
+            keyword = filters["keyword"]
+        else:
+            keyword = None
         notes_list = []
-        for note in self._account.list_notes():
+        for note in self._account.search_notes(notebooks = notebooks_filter, tag = tag_filter, keyword = keyword):
             if note["deleted"] == 0:
-                if len(notebooks_filter) > 0 and note["notebook_local_id"] not in notebooks_filter:
-                    continue
-                if tag_filter != None and (note["tags_local_ids"] == "" or tag_filter not in [int(t) for t in note["tags_local_ids"].split(",")]):
-                    continue
                 tree = libxml2.htmlParseDoc(note["content"], "utf-8")
                 document = HTMLNode(tree.getRootElement())
                 summary = document.getContent()[:100]
