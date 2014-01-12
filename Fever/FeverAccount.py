@@ -30,6 +30,7 @@ import threading
 import sqlite3
 import gobject
 import binascii
+import time
 
 from evernote.api.client import EvernoteClient
 from evernote.edam.notestore import NoteStore
@@ -274,12 +275,15 @@ class FeverAccountDB(object):
             logging.fatal("Unknown element type %s" % element_type)
             return
         
-        self._query("UPDATE " + element_type + " SET " + field + "=?, dirty=1 WHERE local_id=?", (value, local_id))
+        if element_type == "notes":
+            self._query("UPDATE " + element_type + " SET " + field + "=?, dirty=1, updated=? WHERE local_id=?", (value, 1000 * time.time(), local_id))
+        else:
+            self._query("UPDATE " + element_type + " SET " + field + "=?, dirty=1 WHERE local_id=?", (value, local_id))
     
     def create_new_note(self, notebook_local_id = None):
         if notebook_local_id == None:
             notebook_local_id = self._query("SELECT local_id FROM notebooks WHERE defaultNotebook=1")[0][0]
-        self._query("INSERT INTO notes (title, dirty, content, notebook_local_id) VALUES (?, 1, ?, ?)", (_("New note"), "<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE en-note SYSTEM \"http://xml.evernote.com/pub/enml2.dtd\"><en-note></en-note>", notebook_local_id))
+        self._query("INSERT INTO notes (title, dirty, content, notebook_local_id, created, updated) VALUES (?, 1, ?, ?, ?, ?)", (_("New note"), "<?xml version=\"1.0\" encoding=\"UTF-8\"?><!DOCTYPE en-note SYSTEM \"http://xml.evernote.com/pub/enml2.dtd\"><en-note></en-note>", notebook_local_id, 1000 * time.time(), 1000 * time.time()))
         return self._query("SELECT MAX(local_id) FROM notes")[0][0]
     
     def find_notebooks_by_stack(self, stack):
