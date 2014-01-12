@@ -28,8 +28,14 @@
         
         <div id="noteslist_wrapper">
             <div id="searchbox">
-                <span id="searchbox_notebook_filter"><b>_(Notebook:)</b> <span class='value'></span><a href="#" class="delete" onclick="clear_notebook_filter(); return false;"><img src="icons/12x12/delete.png"/></a></span>
-                <span id="searchbox_tag_filter"><b>_(Tag:)</b> <span class='value'></span><a href="#" class="delete" onclick="clear_tag_filter(); return false;"><img src="icons/12x12/delete.png"/></a></span>
+                <span id="searchbox_filters_container">
+                    <span class="searchbox_filter" id="searchbox_notebook_filter"><b>_(Notebook:)</b> <span class='value'></span><a href="#" class="delete" onclick="clear_notebook_filter(); event.stopPropagation(); return false;"><img src="icons/12x12/delete.png"/></a></span>
+                    <span class="searchbox_filter" id="searchbox_tag_filter"><b>_(Tag:)</b> <span class='value'></span><a href="#" class="delete" onclick="clear_tag_filter(); event.stopPropagation(); return false;"><img src="icons/12x12/delete.png"/></a></span>
+                    <span class="searchbox_filter" id="searchbox_created_after_filter"><b>_(Created since:)</b> <span class='value'></span><a href="#" class="delete" onclick="clear_date_filter('created_after'); event.stopPropagation(); return false;"><img src="icons/12x12/delete.png"/></a></span>
+                    <span class="searchbox_filter" id="searchbox_created_before_filter"><b>_(Created before:)</b> <span class='value'></span><a href="#" class="delete" onclick="clear_date_filter('created_before'); event.stopPropagation(); return false;"><img src="icons/12x12/delete.png"/></a></span>
+                    <span class="searchbox_filter" id="searchbox_modified_after_filter"><b>_(Modified since:)</b> <span class='value'></span><a href="#" class="delete" onclick="clear_date_filter('modified_after'); event.stopPropagation(); return false;"><img src="icons/12x12/delete.png"/></a></span>
+                    <span class="searchbox_filter" id="searchbox_modified_before_filter"><b>_(Modified before:)</b> <span class='value'></span><a href="#" class="delete" onclick="clear_date_filter('modified_before'); event.stopPropagation(); return false;"><img src="icons/12x12/delete.png"/></a></span>
+                </span>
                 <input id="searchinput"></input>
                 <div id="search_filters">
                     <h3>_(Contains)</h3>
@@ -69,21 +75,20 @@
                     </div>
                     
                     <h3>_(Created)</h3>
-                    <div id="search_filters_created">
-                        <label for="filter_created_after">_(After : )</label><input class="date_input" id="filter_created_after"/>
+                    <div id="search_filters_created">Since : )</label><input class="date_input" id="filter_created_after"/>
                         <br/>
                         <label for="filter_created_before">_(Before : )</label><input class="date_input" id="filter_created_before"/>
                     </div>
                     
                     <h3>_(Modified)</h3>
                     <div id="search_filters_modified">
-                        <label for="filter_modified_after">_(After : )</label><input class="date_input" id="filter_modified_after"/>
+                        <label for="filter_modified_after">_(Since : )</label><input class="date_input" id="filter_modified_after"/>
                         <br/>
                         <label for="filter_modified_before">_(Before : )</label><input class="date_input" id="filter_modified_before"/>
                     </div>
                 </div>
             </div>
-            <div id="noteslist"></div>
+            <div id="noteslist"><a href="#">test</a></div>
         </div>
         
         <div id="noteeditor_wrapper">

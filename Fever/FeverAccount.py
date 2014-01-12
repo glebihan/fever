@@ -298,16 +298,28 @@ class FeverAccountDB(object):
     def search_notes(self, **filters):
         query_str = "SELECT * FROM notes WHERE 1"
         query_params = ()
-        if "notebooks" in filters and filters["notebooks"]:
-            query_str += " AND notebook_local_id IN (" + ",".join([str(n) for n in filters["notebooks"]]) + ")"
-        if "tag" in filters and filters["tag"]:
+        if "notebook_filter" in filters and filters["notebook_filter"]:
+            query_str += " AND notebook_local_id IN (" + ",".join([str(n) for n in filters["notebook_filter"]]) + ")"
+        if "tag_filter" in filters and filters["tag_filter"]:
             query_str += " AND (tags_local_ids LIKE ? OR tags_local_ids LIKE ? OR tags_local_ids LIKE ? OR tags_local_ids = ?)"
-            query_params += (str(filters["tag"]) + ",%", "%," + str(filters["tag"]) + ",%" , "%," + str(filters["tag"]), str(filters["tag"]))
+            query_params += (str(filters["tag_filter"]) + ",%", "%," + str(filters["tag_filter"]) + ",%" , "%," + str(filters["tag_filter"]), str(filters["tag_filter"]))
         if "keyword" in filters and filters["keyword"]:
             words = filters["keyword"].rstrip().lstrip().split()
             for word in words:
                 query_str += " AND (title LIKE ? OR content LIKE ?)"
                 query_params += ("%" + word + "%", "%" + word + "%")
+        if "created_after" in filters and filters["created_after"]:
+            query_str += " AND created >= ?"
+            query_params += (int(filters["created_after"]),)
+        if "created_before" in filters and filters["created_before"]:
+            query_str += " AND created <= ?"
+            query_params += (int(filters["created_before"]),)
+        if "modified_after" in filters and filters["modified_after"]:
+            query_str += " AND updated >= ?"
+            query_params += (int(filters["modified_after"]),)
+        if "modified_before" in filters and filters["modified_before"]:
+            query_str += " AND updated <= ?"
+            query_params += (int(filters["modified_before"]),)
         
         elements = self._query(query_str, query_params)
         res = []

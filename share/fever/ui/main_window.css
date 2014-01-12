@@ -123,15 +123,6 @@ body{
     font-size: 10px;
 }
 
-#searchbox_notebook_filter, #searchbox_tag_filter{
-    background-color: #BBBBBB;
-    -webkit-border-radius: 3px;
-    -moz-border-radius: 3px;
-    border-radius: 3px;
-    padding: 3px;
-    display: none;
-}
-
 #searchinput{
     border: none;
     outline: none;
@@ -140,7 +131,6 @@ body{
 #search_filters{
     position: absolute;
     top: 28px;
-    opacity: 1;
     background-color: white;
     width: 340px;
     margin-left: -31px;
@@ -207,11 +197,27 @@ body{
     border-radius: 6px;
 }
 
-#searchbox_notebook_filter a.delete, #searchbox_tag_filter a.delete{
+span#searchbox_filters_container{
+    /*overflow-x: hidden;
+    display: inline-block;
+    white-space: nowrap;
+    height: 18px;*/
+}
+
+span.searchbox_filter{
+    background-color: #BBBBBB;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    border-radius: 3px;
+    padding: 3px;
+    display: none;
+}
+
+span.searchbox_filter a.delete{
     margin-left: 3px;
 }
 
-#searchbox_notebook_filter a.delete img, #searchbox_tag_filter a.delete img, #note_tags_list span.tag a img{
+span.searchbox_filter a.delete img, #note_tags_list span.tag a img{
     vertical-align: middle;
 }
 

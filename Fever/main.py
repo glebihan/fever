@@ -287,22 +287,17 @@ class Application(object):
         self.send_command("update_tags_list(%s)" % json.dumps(client_tags_list))
     
     def _refresh_display_notes(self, **filters):
-        notebooks_filter = []
         if "notebook_filter" in filters and filters["notebook_filter"] != "":
             if filters["notebook_filter"].startswith("stack_"):
-                notebooks_filter = [notebook["local_id"] for notebook in self._account.find_notebooks_by_stack(filters["notebook_filter"][6:])]
+                filters["notebook_filter"] = [notebook["local_id"] for notebook in self._account.find_notebooks_by_stack(filters["notebook_filter"][6:])]
             else:
-                notebooks_filter = [int(filters["notebook_filter"])]
+                filters["notebook_filter"] = [int(filters["notebook_filter"])]
         if "tag_filter" in filters and filters["tag_filter"] != "":
-            tag_filter = int(filters["tag_filter"])
+            filters["tag_filter"] = int(filters["tag_filter"])
         else:
-            tag_filter = None
-        if "keyword" in filters and filters["keyword"] != "":
-            keyword = filters["keyword"]
-        else:
-            keyword = None
+            filters["tag_filter"] = None
         notes_list = []
-        for note in self._account.search_notes(notebooks = notebooks_filter, tag = tag_filter, keyword = keyword):
+        for note in self._account.search_notes(**filters):
             if note["deleted"] == 0:
                 tree = libxml2.parseDoc(note["content"])
                 document = HTMLNode(tree.getRootElement())

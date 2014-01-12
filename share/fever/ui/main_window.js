@@ -133,6 +133,12 @@ function clear_tag_filter(){
     update_notes_filter();
 }
 
+function clear_date_filter(date_key){
+    jQuery("#filter_" + date_key).datepicker("setDate", null);
+    jQuery("#searchbox_" + date_key + "_filter").toggle(false);
+    update_notes_filter();
+}
+
 function update_notes_filter(){
     if (notes_notebook_filter === null){
         jQuery("#searchbox_notebook_filter").toggle(false);
@@ -155,18 +161,21 @@ function update_notes_filter(){
         "tag_filter": (notes_tag_filter ? notes_tag_filter.id : ""),
         "keyword": jQuery("#searchinput").val()
     }
+    
+    var date_keys = ["created_after", "created_before", "modified_after", "modified_before"];
+    
+    for (var i in date_keys){
+        if (jQuery("#filter_" + date_keys[i]).datepicker("getDate")){
+            search_filters[date_keys[i]] = jQuery("#filter_" + date_keys[i]).datepicker("getDate").getTime();
+        }
+    }
+    
     alert("refresh_notes_search_results:" + encodeURIComponent(JSON.stringify(search_filters)));
 }
 
 function resize_search_input(){
-    var width = jQuery("#searchbox").width() - 8;
-    if (notes_notebook_filter != null){
-        width -= jQuery("#searchbox_notebook_filter").outerWidth() + 3;
-    }
-    if (notes_tag_filter != null){
-        width -= jQuery("#searchbox_tag_filter").outerWidth() + 3;
-    }
-    jQuery("#searchinput").css("width", width + "px");
+    jQuery("#searchbox_filters_container").css("max-width", (0.8 * jQuery("#searchbox").width()) + "px");
+    jQuery("#searchinput").css("width", (jQuery("#searchbox").width() - jQuery("#searchbox_filters_container").width() - 8) + "px");
 }
 
 function push_note_tag(tag){
@@ -225,6 +234,7 @@ jQuery(document).ready(function(){
             notes_notebook_filter = null;
             notes_tag_filter = null;
             jQuery("#searchinput").val("");
+            jQuery("#search_filters").find(".date_input").datepicker("setDate", null);
             jQuery("#tagslist").tree("selectNode", null);
         }else{
             notes_notebook_filter = event.node;
@@ -273,15 +283,6 @@ jQuery(document).ready(function(){
         }
     });
     
-    jQuery("#searchinput").keypress(function(event){
-        if (event.keyCode === jQuery.ui.keyCode.ENTER){
-            toggle_search_filters(false);
-            update_notes_filter();
-        }else{
-            toggle_search_filters(true);
-        }
-    });
-    
     jQuery("#leftbar").resizable({
         handles: "e",
         resize: function(event, ui){
@@ -294,6 +295,7 @@ jQuery(document).ready(function(){
         resize: function(event, ui){
             jQuery("#noteeditor_wrapper").css("left", jQuery("#leftbar").outerWidth() + jQuery("#noteslist_wrapper").outerWidth());
             jQuery("#searchbox").css("width", (jQuery("#noteslist_wrapper").width() - 32) + "px");
+            jQuery("#search_filters").css("width", (jQuery("#noteslist_wrapper").width() - 10) + "px");
             resize_search_input();
         }
     });
@@ -374,6 +376,19 @@ jQuery(document).ready(function(){
             }
         });
     
+    jQuery("#searchinput").keypress(function(event){
+        if (event.keyCode === jQuery.ui.keyCode.ENTER){
+            toggle_search_filters(false);
+            update_notes_filter();
+        }else{
+            toggle_search_filters(true);
+        }
+    });
+    
+    jQuery("#searchinput").click(function(event){
+        toggle_search_filters(true);
+    });
+    
     jQuery("#searchbox").click(function(event){
         if (event.target.nodeName != "INPUT"){
             jQuery("#searchinput").focus();
@@ -403,6 +418,17 @@ jQuery(document).ready(function(){
         onClose: function(event){
             jQuery("#searchinput").focus();
         }
+    });
+    
+    jQuery("#searchbox").find(".date_input").change(function(event){
+        var key = jQuery(this).attr("id").substring(7);
+        if (jQuery(this).datepicker("getDate")){
+            jQuery("#searchbox_" + key + "_filter").find("span.value").html(jQuery(this).val());
+            jQuery("#searchbox_" + key + "_filter").toggle(true);
+        }else{
+            jQuery("#searchbox_" + key + "_filter").toggle(false);
+        }
+        update_notes_filter();
     });
     
     jQuery(window).resize(function(event){
