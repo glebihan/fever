@@ -154,7 +154,6 @@ function update_notes_filter(){
 function resize_search_input(){
     var width = jQuery("#searchbox").width() - 8;
     if (notes_notebook_filter != null){
-        console.log("notes_notebook_filter != null");
         width -= jQuery("#searchbox_notebook_filter").outerWidth() + 3;
     }
     if (notes_tag_filter != null){
