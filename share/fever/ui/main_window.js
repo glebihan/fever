@@ -119,6 +119,18 @@ function update_noteslist_height(){
     jQuery("#noteslist").css("height", (jQuery("#noteslist_wrapper").height() - jQuery("#noteslist").offset().top) + "px");
 }
 
+function clear_notebook_filter(){
+    jQuery("#notebookslist").tree("selectNode", null);
+    notes_notebook_filter = null;
+    update_notes_filter();
+}
+
+function clear_tag_filter(){
+    jQuery("#tagslist").tree("selectNode", null);
+    notes_tag_filter = null;
+    update_notes_filter();
+}
+
 function update_notes_filter(){
     if (notes_notebook_filter === null){
         jQuery("#searchbox_notebook_filter").toggle(false);
