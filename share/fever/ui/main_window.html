@@ -16,20 +16,20 @@
         
         <div id="leftbar">
             <div id="notebookslist_wrapper">
-                <h3>Notebooks</h3>
+                <h3>_(Notebooks)</h3>
                 <div id="notebookslist"></div>
             </div>
             
             <div id="tagslist_wrapper">
-                <h3>Tags</h3>
+                <h3>_(Tags)</h3>
                 <div id="tagslist"></div>
             </div>
         </div>
         
         <div id="noteslist_wrapper">
             <div id="searchbox">
-                <span id="searchbox_notebook_filter"><b>Notebook:</b> <span class='value'></span><a href="#" class="delete" onclick="clear_notebook_filter(); return false;"><img src="icons/12x12/delete.png"/></a></span>
-                <span id="searchbox_tag_filter"><b>Tag:</b> <span class='value'></span><a href="#" class="delete" onclick="clear_tag_filter(); return false;"><img src="icons/12x12/delete.png"/></a></span>
+                <span id="searchbox_notebook_filter"><b>_(Notebook:)</b> <span class='value'></span><a href="#" class="delete" onclick="clear_notebook_filter(); return false;"><img src="icons/12x12/delete.png"/></a></span>
+                <span id="searchbox_tag_filter"><b>_(Tag:)</b> <span class='value'></span><a href="#" class="delete" onclick="clear_tag_filter(); return false;"><img src="icons/12x12/delete.png"/></a></span>
                 <input id="searchinput"></input>
             </div>
             <div id="noteslist"></div>
@@ -38,8 +38,8 @@
         <div id="noteeditor_wrapper">
             <div id="noteeditor_inside_wrapper">
                 <div id="noteeditor_toolbar">
-                    <label for="note_notebook_selector">Notebook : </label><select id="note_notebook_selector" onchange="update_note_notebook(this.value);"></select>
-                    <label for="note_tags_selector">Tags : </label><span id="note_tags_list"><input id="note_tags_selector"/></span>
+                    <label for="note_notebook_selector">_(Notebook : )</label><select id="note_notebook_selector" onchange="update_note_notebook(this.value);"></select>
+                    <label for="note_tags_selector">_(Tags : )</label><span id="note_tags_list"><input id="note_tags_selector"/></span>
                 </div>
                 <div id="noteeditor_inside_inside_wrapper">
                     <div id="noteeditor">

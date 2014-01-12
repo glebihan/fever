@@ -61,7 +61,7 @@ class Application(object):
         self._webview.connect("script-alert", self._on_webview_script_alert)
         self._webview.connect("drag-drop", self._on_webview_drag_drop)
         
-        self._webview.load_uri(urlparse.urljoin('file:', urllib.pathname2url(os.path.join(self.cli_options.share_dir, "fever", "ui", "main_window.html"))))
+        self._load_main_window()
         
         self._statusbar = builder.get_object("statusbar")
 
@@ -76,6 +76,26 @@ class Application(object):
         self._window.maximize()
         
         self._about_dialog = AboutDialog.AboutDialog(self._window)
+    
+    def _load_main_window(self):
+        filename = os.path.join(self.cli_options.share_dir, "fever", "ui", "main_window.html")
+        f = open(filename)
+        data = f.read()
+        f.close()
+        
+        while "_(" in data:
+            i = data.index("_(")
+            pcount = 1
+            j = i + 2
+            while pcount != 0:
+                if data[j] == "(":
+                    pcount += 1
+                if data[j] == ")":
+                    pcount -= 1
+                j += 1
+            data = data[:i] + _(data[i+2:j-1]) + data[j:]
+        
+        self._webview.load_html_string(data, urlparse.urljoin('file:', urllib.pathname2url(filename)))
     
     def _localize_ui(self, builder):
         builder.get_object("file_menuitem").set_label(_("_File"))
