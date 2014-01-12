@@ -161,13 +161,8 @@ class Application(object):
             self._account.update_notebook_stack(notebook_local_id, stack)
             self._refresh_display_notebooks()
         elif command == "refresh_notes_search_results":
-            i = params.index(":")
-            notebook_filter = params[:i]
-            params = params[i+1:]
-            i = params.index(":")
-            tag_filter = params[:i]
-            keyword = params[i+1:]
-            self._refresh_display_notes(notebook_filter = notebook_filter, tag_filter = tag_filter, keyword = keyword)
+            params_array = eval(urlparse.parse_qs("params=" + params)["params"][0])
+            self._refresh_display_notes(**params_array)
         elif command == "add_note_tag":
             i = params.index(":")
             note_local_id = int(params[:i])

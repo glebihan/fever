@@ -150,7 +150,12 @@ function update_notes_filter(){
     
     resize_search_input();
     
-    alert("refresh_notes_search_results:" + (notes_notebook_filter ? (notes_notebook_filter.is_stack ? "stack_" : "") + notes_notebook_filter.id : "") + ":" + (notes_tag_filter ? notes_tag_filter.id : "") + ":" + jQuery("#searchinput").val());
+    var search_filters = {
+        "notebook_filter": (notes_notebook_filter ? (notes_notebook_filter.is_stack ? "stack_" : "") + notes_notebook_filter.id : ""),
+        "tag_filter": (notes_tag_filter ? notes_tag_filter.id : ""),
+        "keyword": jQuery("#searchinput").val()
+    }
+    alert("refresh_notes_search_results:" + encodeURIComponent(JSON.stringify(search_filters)));
 }
 
 function resize_search_input(){
