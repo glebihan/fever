@@ -66,10 +66,10 @@ class Application(object):
         self._statusbar = builder.get_object("statusbar")
 
         self._window.connect("delete_event", self._on_window_delete_event)
-        builder.get_object("quit_action").connect("activate", self._on_quit_clicked)
-        builder.get_object("sync_action").connect("activate", self._on_sync_clicked)
-        builder.get_object("about_action").connect("activate", self._on_about_clicked)
-        builder.get_object("new_note_action").connect("activate", self._on_new_note_clicked)
+        builder.get_object("quit_menu_item").connect("activate", self._on_quit_clicked)
+        builder.get_object("sync_menuitem").connect("activate", self._on_sync_clicked)
+        builder.get_object("about_menuitem").connect("activate", self._on_about_clicked)
+        builder.get_object("new_note_menuitem").connect("activate", self._on_new_note_clicked)
         
         self._localize_ui(builder)
         
@@ -101,7 +101,8 @@ class Application(object):
         builder.get_object("file_menuitem").set_label(_("_File"))
         builder.get_object("edit_menuitem").set_label(_("_Edit"))
         builder.get_object("help_menuitem").set_label(_("_Help"))
-        builder.get_object("new_note_action").set_label(_("_New note"))
+        builder.get_object("new_note_menuitem").set_label(_("_New note"))
+        builder.get_object("sync_menuitem").set_label(_("_Synchronise"))
     
     def _on_webview_drag_drop(self, webview, drag_context, x, y, timestamp):
         return True
