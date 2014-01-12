@@ -5,6 +5,8 @@ var notebooks_list_open_nodes = new Array();
 var tags_list_open_nodes = new Array();
 var notes_tag_filter = null;
 var availableTags = new Array();
+var search_filters_animation_running = false;
+var search_filters_next_state = null;
 
 function _(string){
     return string;
@@ -175,6 +177,26 @@ function push_note_tag(tag){
     });
 }
 
+function toggle_search_filters(visible){
+    search_filters_next_state = (visible ? "visible" : "hidden");
+    setTimeout(apply_search_filters_state, 100);
+}
+
+function apply_search_filters_state(){
+    if (search_filters_animation_running){
+        setTimeout(search_filters_animation_running, 100);
+        return;
+    }
+    if ((search_filters_next_state == "visible" && !jQuery("#search_filters").is(":visible")) || (search_filters_next_state == "hidden" && jQuery("#search_filters").is(":visible"))){
+        search_filters_animation_running = true;
+        jQuery("#search_filters").slideToggle({
+            done: function(){
+                search_filters_animation_running = false;
+            }
+        });
+    }
+}
+
 jQuery(document).ready(function(){
     jQuery("#notebookslist").tree({
         data: [],
@@ -193,9 +215,11 @@ jQuery(document).ready(function(){
         }
     });
     jQuery("#notebookslist").bind('tree.select', function(event){
+        toggle_search_filters(false);
         if (event.node && event.node.id == -1){
             notes_notebook_filter = null;
             notes_tag_filter = null;
+            jQuery("#searchinput").val("");
             jQuery("#tagslist").tree("selectNode", null);
         }else{
             notes_notebook_filter = event.node;
@@ -223,6 +247,7 @@ jQuery(document).ready(function(){
         data: []
     });
     jQuery("#tagslist").bind('tree.select', function(event){
+        toggle_search_filters(false);
         if (event.node){
             var notebooks_tree_selected_node = jQuery("#notebookslist").tree("getSelectedNode");
             if (notebooks_tree_selected_node && notebooks_tree_selected_node.id == -1){
@@ -245,7 +270,10 @@ jQuery(document).ready(function(){
     
     jQuery("#searchinput").keypress(function(event){
         if (event.keyCode === jQuery.ui.keyCode.ENTER){
+            toggle_search_filters(false);
             update_notes_filter();
+        }else{
+            toggle_search_filters(true);
         }
     });
     
@@ -260,7 +288,8 @@ jQuery(document).ready(function(){
         handles: "e",
         resize: function(event, ui){
             jQuery("#noteeditor_wrapper").css("left", jQuery("#leftbar").outerWidth() + jQuery("#noteslist_wrapper").outerWidth());
-            jQuery("#searchinput").css("width", (jQuery("#noteslist_wrapper").width() - 32) + "px");
+            jQuery("#searchbox").css("width", (jQuery("#noteslist_wrapper").width() - 32) + "px");
+            resize_search_input();
         }
     });
     
@@ -339,6 +368,37 @@ jQuery(document).ready(function(){
                 return false;
             }
         });
+    
+    jQuery("#searchbox").click(function(event){
+        if (event.target.nodeName != "INPUT"){
+            jQuery("#searchinput").focus();
+        }
+    });
+    
+    jQuery("#searchbox").dblclick(function(event){
+        if (event.target.nodeName != "INPUT"){
+            jQuery("#searchinput").focus();
+        }
+    });
+    
+    jQuery("#searchbox").focusin(function(event){
+        toggle_search_filters(true);
+    });
+    
+    jQuery("#searchbox").focusout(function(event){
+        toggle_search_filters(false);
+    });
+    
+    jQuery("#search_filters").accordion({
+        collapsible: true,
+        active: false
+    });
+    
+    jQuery("#searchbox").find(".date_input").datepicker({
+        onClose: function(event){
+            jQuery("#searchinput").focus();
+        }
+    });
     
     jQuery(window).resize(function(event){
         update_editor_height();

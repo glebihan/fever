@@ -31,6 +31,57 @@
                 <span id="searchbox_notebook_filter"><b>_(Notebook:)</b> <span class='value'></span><a href="#" class="delete" onclick="clear_notebook_filter(); return false;"><img src="icons/12x12/delete.png"/></a></span>
                 <span id="searchbox_tag_filter"><b>_(Tag:)</b> <span class='value'></span><a href="#" class="delete" onclick="clear_tag_filter(); return false;"><img src="icons/12x12/delete.png"/></a></span>
                 <input id="searchinput"></input>
+                <div id="search_filters">
+                    <h3>_(Contains)</h3>
+                    <div id="search_filters_contains">
+                        <span class="search_filters_contains_item">
+                            <input type="checkbox" id="filter_contains_images"/>
+                            <label for="filter_contains_images">_(Images)</label>
+                        </span>
+                        <span class="search_filters_contains_item">
+                            <input type="checkbox" id="filter_contains_audio"/>
+                            <label for="filter_contains_audio">_(Audio)</label>
+                        </span>
+                        <span class="search_filters_contains_item">
+                            <input type="checkbox" id="filter_contains_video"/>
+                            <label for="filter_contains_video">_(Video)</label>
+                        </span>
+                        <span class="search_filters_contains_item">
+                            <input type="checkbox" id="filter_contains_pdf"/>
+                            <label for="filter_contains_pdf">_(PDF)</label>
+                        </span>
+                        <span class="search_filters_contains_item">
+                            <input type="checkbox" id="filter_contains_encrypted_text"/>
+                            <label for="filter_contains_encrypted_text">_(Encrypted text)</label>
+                        </span>
+                        <span class="search_filters_contains_item">
+                            <input type="checkbox" id="filter_contains_ink"/>
+                            <label for="filter_contains_ink">_(Ink)</label>
+                        </span>
+                        <span class="search_filters_contains_item">
+                            <input type="checkbox" id="filter_contains_attachments"/>
+                            <label for="filter_contains_attachments">_(Attachments)</label>
+                        </span>
+                    </div>
+                    
+                    <h3>_(Source)</h3>
+                    <div>
+                    </div>
+                    
+                    <h3>_(Created)</h3>
+                    <div id="search_filters_created">
+                        <label for="filter_created_after">_(After : )</label><input class="date_input" id="filter_created_after"/>
+                        <br/>
+                        <label for="filter_created_before">_(Before : )</label><input class="date_input" id="filter_created_before"/>
+                    </div>
+                    
+                    <h3>_(Modified)</h3>
+                    <div id="search_filters_modified">
+                        <label for="filter_modified_after">_(After : )</label><input class="date_input" id="filter_modified_after"/>
+                        <br/>
+                        <label for="filter_modified_before">_(Before : )</label><input class="date_input" id="filter_modified_before"/>
+                    </div>
+                </div>
             </div>
             <div id="noteslist"></div>
         </div>

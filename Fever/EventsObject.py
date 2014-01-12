@@ -44,5 +44,5 @@ class EventsObject(object):
                 callback(*((self,) + params + def_params))
     
     def disconnect_all(self):
-        for event_id in self._events_maps:
+        for event_id in self._events_map:
             self.disconnect(event_id)

@@ -51,6 +51,8 @@ class Application(object):
         builder.add_from_file(os.path.join(self.cli_options.share_dir, "fever", "ui", "ui.glade"))
         self._window = builder.get_object("main_window")
         
+        self._window.add_accel_group(builder.get_object("main_accelgroup"))
+        
         self._webview = webkit.WebView()
         builder.get_object("webview_container").add(self._webview)
         self._webview.get_settings().set_property('enable-file-access-from-file-uris', 1)
