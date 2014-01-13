@@ -242,6 +242,7 @@ jQuery(document).ready(function(){
             jQuery("#searchinput").val("");
             jQuery("#search_filters").find(".date_input").datepicker("setDate", null);
             jQuery("#tagslist").tree("selectNode", null);
+            jQuery("#searchbox_filters_container").find("span.searchbox_filter").toggle(false);
         }else{
             notes_notebook_filter = event.node;
         }
