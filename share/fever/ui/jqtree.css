@@ -1,5 +1,7 @@
 ul.jqtree-tree {
     margin-left: 12px;
+    margin-top: 5px;
+    margin-bottom: 15px !important;
 }
 
 ul.jqtree-tree,
@@ -32,11 +34,11 @@ ul.jqtree-tree .jqtree-toggler {
     line-height: 12px;
     font-family: arial;  /* fix for ie9 */
     border-bottom: none;
-    color: #333;
+    color: #BDBDBD;
 }
 
 ul.jqtree-tree .jqtree-toggler:hover {
-    color: #000;
+    color: #FFFFFF;
 }
 
 ul.jqtree-tree .jqtree-element {
@@ -44,8 +46,9 @@ ul.jqtree-tree .jqtree-element {
 }
 
 ul.jqtree-tree .jqtree-title {
-    color: #000000;
+    color: #FFFFFF;
     vertical-align: middle;
+    font-size: 12px;
 }
 
 ul.jqtree-tree li.jqtree-folder {

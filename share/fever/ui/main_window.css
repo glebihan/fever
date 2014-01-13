@@ -5,7 +5,7 @@ body{
 }
 
 #leftbar{
-    background-color: #BBBBBB;
+    background-color: #383838;
     width: 200px;
     border: #B3B3B3 solid 1px;
     position: absolute;
@@ -14,7 +14,12 @@ body{
     left: 0px;
     padding-left: 10px;
     padding-right: 10px;
-    color: #000000;
+    color: #FFFFFF;
+}
+
+#leftbar h3{
+    font-size: 16px;
+    margin: 10px 0 0 0;
 }
 
 #noteslist_wrapper{
