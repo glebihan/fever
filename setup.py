@@ -83,6 +83,10 @@ os.system("cp -R evernote/lib/evernote evernote/lib/thrift Fever")
 os.system("cp -R evernote/LICENSE evernote/APACHE-LICENSE-2.0.txt Fever/evernote")
 os.system("cp -R evernote/LICENSE evernote/APACHE-LICENSE-2.0.txt Fever/thrift")
 
+# package jQuery-contextMenu
+os.system("mkdir -p share/fever/jQuery-contextMenu")
+os.system("cp -R jQuery-contextMenu/src/* share/fever/jQuery-contextMenu")
+
 setup(
     name = UNIX_APPNAME,
     version = VERSION,
