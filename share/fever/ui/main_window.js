@@ -458,5 +458,7 @@ jQuery(document).ready(function(){
         update_noteslist_height();
     });
     
+    jQuery("#searchbox_new").searchbox();
+    
     resize_search_input();
 });

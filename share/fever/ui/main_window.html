@@ -6,8 +6,10 @@
         <script type="text/javascript" src="../jqTree/tree.jquery.js"></script>
         <script type='text/javascript' src='../tinymce/tinymce.min.js'></script>
         <script type='text/javascript' src='main_window.js'></script>
+        <script type='text/javascript' src='searchbox.js'></script>
         
         <link rel="stylesheet" type="text/css" href="main_window.css"/>
+        <link rel="stylesheet" type="text/css" href="searchbox.css"/>
         <link rel="stylesheet" type="text/css" href="../jquery-ui/jquery-ui.css">
         <link rel="stylesheet" type="text/css" href="jqtree.css"/>
     </head>
@@ -27,6 +29,7 @@
         </div>
         
         <div id="noteslist_wrapper">
+            <div id="searchbox_new"></div>
             <div id="searchbox">
                 <span id="searchbox_filters_container">
                     <span class="searchbox_filter" id="searchbox_notebook_filter"><b>_(Notebook:)</b> <span class='value'></span><a href="#" class="delete" onclick="clear_notebook_filter(); event.stopPropagation(); return false;"><img src="icons/12x12/delete.png"/></a></span>
