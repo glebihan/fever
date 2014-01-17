@@ -13,6 +13,3 @@
 [submodule "jquery-ui"]
 	path = jquery-ui
 	url = https://github.com/jquery/jquery-ui.git
-[submodule "jQuery-contextMenu"]
-	path = jQuery-contextMenu
-	url = https://github.com/medialize/jQuery-contextMenu.git
