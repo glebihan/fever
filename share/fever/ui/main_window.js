@@ -265,6 +265,10 @@ jQuery(document).ready(function(){
             i = notebooks_list_open_nodes.indexOf(event.node.id);
         }
     });
+    jQuery("#notebookslist").bind('tree.contextmenu', function(event){
+        var menu = new NotebooksListContextMenu(event);
+        menu.show();
+    });
     jQuery("#tagslist").tree({
         data: []
     });
