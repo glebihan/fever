@@ -168,6 +168,12 @@ body{
     padding: 5px;
 }
 
+#search_filters > h3{
+    margin-bottom: 0;
+    padding-left: 25px;
+    font-size: 1em;
+}
+
 #search_filters_contains{
     height: 100px;
 }
